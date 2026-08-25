@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page not found — Digital Autonomous</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#05101f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Lato:wght@400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Lato',system-ui,sans-serif;background:#05101f;color:#e1e4e8;
+    min-height:100vh;display:grid;place-items:center;text-align:center;
+    padding:2rem;line-height:1.7;-webkit-font-smoothing:antialiased;
+  }
+  .glow{position:fixed;top:-20%;right:-10%;width:60vw;height:60vw;pointer-events:none;
+    background:radial-gradient(circle,rgba(0,166,251,.16),transparent 65%)}
+  .code{font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(4rem,14vw,8rem);
+    line-height:1;color:#00a6fb;letter-spacing:-.03em}
+  h1{font-family:'Montserrat',sans-serif;font-weight:700;font-size:clamp(1.4rem,4vw,2rem);
+    margin:.6rem 0 .9rem;color:#fff}
+  p{color:#94a1bb;max-width:46ch;margin:0 auto 2rem}
+  .btn{font-family:'Montserrat',sans-serif;font-weight:600;font-size:.95rem;
+    padding:.85rem 1.7rem;border-radius:10px;display:inline-flex;align-items:center;gap:.55rem;
+    background:#00a6fb;color:#05101f;text-decoration:none;
+    transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,166,251,.32)}
+  .mark{margin-bottom:1.6rem}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<main>
+  <svg class="mark" width="52" height="52" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+    <polyline points="5,31 15,23 22,27 33,10" stroke="#00a6fb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M33 10 L26.5 10.5 M33 10 L32 16.5" stroke="#66d2f9" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="5" cy="31" r="2.7" fill="#66d2f9"/><circle cx="15" cy="23" r="2.7" fill="#fff"/>
+    <circle cx="22" cy="27" r="2.7" fill="#66d2f9"/><circle cx="33" cy="10" r="3.1" fill="#00a6fb"/>
+  </svg>
+  <div class="code">404</div>
+  <h1>This page went autonomous.</h1>
+  <p>The link you followed doesn't exist — or it moved. Let's get you back to somewhere useful.</p>
+  <a class="btn" href="/">
+    Back to home
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </a>
+</main>
+</body>
+</html>
