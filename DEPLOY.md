@@ -6,11 +6,12 @@ Static one-page site. No build step — what is in this repo is what ships.
 
 - [x] Domain **digitalautonomous.co.uk** registered at **Porkbun**
       (nameservers: `curitiba` / `fortaleza` / `maceio` / `salvador.ns.porkbun.com`)
-- [ ] GitHub repo created and pushed
-- [ ] Pages enabled
-- [ ] DNS pointed at GitHub — apex currently serves Porkbun's parked page
-      (`207.207.210.107` / `207.207.210.229`), `www` does not resolve
-- [ ] HTTPS enforced
+- [x] GitHub repo created and pushed
+- [x] Pages enabled (GitHub auto-enabled it on first push and auto-bound the
+      custom domain from the committed `CNAME`)
+- [x] DNS pointed at GitHub — apex and `www` both resolve to GitHub's
+      addresses, confirmed live
+- [x] HTTPS enforced
 
 Note: `digitalautonomous.com` is owned by a third party (registered 2020, parked
 on Afternic for resale). Nothing in this site references it.
@@ -71,7 +72,10 @@ Leave any MX / TXT records alone if you later set up mail.
 
 Once DNS resolves to GitHub, tick **Enforce HTTPS** in Settings → Pages. GitHub
 issues a Let's Encrypt certificate automatically; it can take up to ~24h to
-become available after the DNS change. Until then the site serves over HTTP.
+become available after the DNS change.
+
+**Done.** The certificate is issued (Let's Encrypt, covers both the apex and
+`www`), Enforce HTTPS is on, and HTTP now 301-redirects to HTTPS.
 
 ## Verifying
 
