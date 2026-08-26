@@ -17,13 +17,14 @@ on Afternic for resale). Nothing in this site references it.
 
 ## 1. Create the GitHub repo and push
 
-Name the repo `<your-username>.github.io`. That matters: this site uses
+Name the repo `omotayosinmi-source.github.io` — it must exactly match the
+account name. That matters: this site uses
 root-absolute asset paths (`/favicon.svg`, `/og-image.png`), which resolve
 correctly at a domain root but break under a project path like
 `username.github.io/reponame/`.
 
 ```bash
-git remote add origin https://github.com/<your-username>/<your-username>.github.io.git
+git remote add origin https://github.com/omotayosinmi-source/omotayosinmi-source.github.io.git
 git push -u origin main
 ```
 
@@ -56,7 +57,7 @@ Then add:
 | AAAA | *(blank)* | 2606:50c0:8001::153 |
 | AAAA | *(blank)* | 2606:50c0:8002::153 |
 | AAAA | *(blank)* | 2606:50c0:8003::153 |
-| CNAME | `www` | `<your-username>.github.io` |
+| CNAME | `www` | `omotayosinmi-source.github.io` |
 
 Porkbun's "Host" field is the subdomain only — leave it **empty** for the apex,
 do not type `@` or the full domain.
