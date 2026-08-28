@@ -178,7 +178,6 @@ INDUSTRY_LINKS = ([("/industries/%s/" % i["slug"], i["nav"],
 COMPANY_LINKS = [
     ("/about/", "About us", "Who is behind Digital Autonomous"),
     ("/case-studies/", "Case studies", "How we document real results"),
-    ("/insights/", "Insights", "Notes on automation that works"),
     ("/contact/", "Contact", "Talk to us about your business"),
 ]
 
@@ -292,7 +291,6 @@ def footer(home=False):
         <h2>Company</h2>
         <a href="/about/">About</a>
         <a href="/case-studies/">Case studies</a>
-        <a href="/insights/">Insights</a>
         <a href="/contact/">Contact</a>
         <a href="%(audit)s">Free automation audit</a>
       </div>
@@ -1279,43 +1277,6 @@ def build_case_studies():
     write(path, html, "Case studies", 0.5, "monthly")
 
 
-def build_insights():
-    path = "/insights/"
-    body = """<section class="page-hero wide">
-  <div class="hero-bg" aria-hidden="true"><div class="hero-grid"></div><div class="hero-glow"></div></div>
-  <div class="wrap" style="position:relative;z-index:1">
-    %(crumbs)s
-    <h1>Insights</h1>
-    <p class="lead">Practical notes on automation that actually holds up in production —
-      what works, what breaks, and what is not worth automating.</p>
-  </div>
-</section>
-
-<section class="block">
-  <div class="wrap">
-    <div class="empty-state reveal">
-      <div class="eico">%(eico)s</div>
-      <h2>Written when we have something worth saying</h2>
-      <p>We would rather publish a handful of genuinely useful pieces than pad this page out
-        with AI-generated filler about the future of AI. New articles appear here as they are
-        written — in the meantime, the audit is the fastest way to get specific answers about
-        your own business.</p>
-      <div class="btn-row center">%(a)s</div>
-    </div>
-  </div>
-</section>
-""" % dict(crumbs=crumbs([("/", "Home"), (None, "Insights")]), eico=icon("doc"),
-           a=btn("/contact/", "Book a free automation audit", track="book_audit_click",
-                 loc="insights", arrow=True))
-
-    html = (head("Insights | Digital Autonomous",
-                 "Practical notes on business automation from Digital Autonomous — what works "
-                 "in production, what breaks, and what is not worth automating.",
-                 path, jsonld=[breadcrumb_ld([("/", "Home"), (path, "Insights")])])
-            + header() + '<main id="main">' + body + '</main>' + footer())
-    write(path, html, "Insights", 0.4, "monthly")
-
-
 def build_contact():
     path = "/contact/"
     methods = ['<a class="cmethod" href="mailto:%s"><span class="cico">%s</span>'
@@ -1432,7 +1393,7 @@ def build_contact():
 # ==========================================================================
 # Legal pages
 # ==========================================================================
-def legal_page(slug, title, meta_desc, intro, sections):
+def legal_page(slug, title, meta_desc, sections):
     path = "/%s/" % slug
     parts = []
     for h, paras in sections:
@@ -1448,13 +1409,12 @@ def legal_page(slug, title, meta_desc, intro, sections):
   <div class="wrap">
     <div class="prose reveal">
       <p class="doc-meta">Last updated %(updated)s</p>
-      <div class="callout"><p><strong>Placeholder pending legal review.</strong> %(intro)s</p></div>
       %(body)s
     </div>
   </div>
 </section>
 """ % dict(crumbs=crumbs([("/", "Home"), (None, title)]), title=title,
-           updated=LEGAL_UPDATED, intro=intro, body="".join(parts))
+           updated=LEGAL_UPDATED, body="".join(parts))
 
     html = (head("%s | Digital Autonomous" % title, meta_desc, path,
                  jsonld=[breadcrumb_ld([("/", "Home"), (path, title)])])
@@ -1472,8 +1432,7 @@ def company_line():
         bits.append("registered office %s" % REGISTERED_OFFICE)
     if bits:
         return "%s (%s)" % (BRAND, ", ".join(bits))
-    return ('%s ("we", "us", "our") — full registered company details to be inserted here once '
-            'confirmed' % BRAND)
+    return BRAND
 
 
 def build_legal():
@@ -1484,15 +1443,10 @@ def build_legal():
         "privacy", "Privacy Policy",
         "How Digital Autonomous collects, uses and protects personal data, and the rights "
         "you have over your information under UK GDPR.",
-        "This policy sets out our intended practice and is written to be accurate about how the "
-        "website currently works. It has not yet been reviewed by a solicitor, and the identity "
-        "of the data controller and the retention schedule must be confirmed before this page is "
-        "relied upon.",
         [
             ("Who we are", [
-                P("This website is operated by %s. For any question about this policy or about "
-                  "your personal data, contact <a href=\"mailto:%s\">%s</a>."
-                  % (company_line(), EMAIL, EMAIL)),
+                P("For any question about this policy or about your personal data, contact "
+                  "<a href=\"mailto:%s\">%s</a>." % (EMAIL, EMAIL)),
                 P("For the purposes of UK data protection law we act as a <strong>controller</strong> "
                   "for data you send us directly, and as a <strong>processor</strong> for personal "
                   "data we handle inside a client's systems on that client's instructions. Where we "
@@ -1500,8 +1454,6 @@ def build_legal():
                   "written data processing agreement sets out the terms."),
             ]),
             ("What this website collects", [
-                P("This site is a set of static pages hosted on GitHub Pages. It sets no cookies "
-                  "and includes no third-party analytics, advertising or social tracking scripts."),
                 UL([
                     "<strong>Contact form.</strong> The form on our contact page does not transmit "
                     "anything to us. It assembles a message and opens your own email application "
@@ -1538,8 +1490,6 @@ def build_legal():
         "cookies", "Cookie Policy",
         "Digital Autonomous does not set cookies on this website. This policy explains what "
         "that means and what would change if that ever does.",
-        "This page accurately describes the site as it stands today. It must be revisited before "
-        "any analytics, booking widget or chat tool is added, because most of them set cookies.",
         [
             ("The short version", [
                 P("<strong>This website sets no cookies.</strong> There is no analytics script, no "
@@ -1576,28 +1526,10 @@ def build_legal():
         "terms", "Terms & Conditions",
         "The terms governing use of the Digital Autonomous website, and the basis on which "
         "automation services are provided.",
-        "These terms cover use of this website and outline our commercial model. They are not a "
-        "substitute for the written agreement that governs any actual engagement, and they must "
-        "be reviewed by a solicitor and completed with our registered company details before "
-        "being relied upon.",
         [
             ("Who these terms are with", [
                 P("This website is operated by %s. By using the site you accept these terms."
                   % company_line()),
-            ]),
-            ("Use of this website", [
-                P("The content here is provided for general information about our services. It "
-                  "does not constitute advice, and it is not an offer capable of acceptance. We "
-                  "try to keep the site accurate and available but do not guarantee that it will "
-                  "be uninterrupted or error-free."),
-                UL([
-                    "You may not use this site unlawfully or in a way that damages it or impairs "
-                    "anyone else's use of it.",
-                    "You may not attempt to gain unauthorised access to the site or any system "
-                    "connected to it.",
-                    "You may not reproduce substantial parts of the content commercially without "
-                    "our permission.",
-                ]),
             ]),
             ("Illustrative material", [
                 P("Automation examples shown on this site — including the example automation on "
@@ -1621,23 +1553,6 @@ def build_legal():
                   "manage and maintain the automation infrastructure as a service. The specific "
                   "scope, licensing position and what happens at the end of an engagement are set "
                   "out in the engagement agreement rather than here."),
-            ]),
-            ("Third-party platforms", [
-                P("Automation we build depends on third-party services — telephony, calendars, "
-                  "CRMs, AI model providers and others. Those services are governed by their own "
-                  "terms and can change, and we are not responsible for their availability, "
-                  "pricing or behaviour."),
-            ]),
-            ("Liability", [
-                P("Nothing in these terms excludes liability for death or personal injury caused "
-                  "by negligence, for fraud, or for anything else that cannot lawfully be "
-                  "excluded. Subject to that, we exclude liability for indirect or consequential "
-                  "loss and for loss of profit, revenue or data arising from use of this website. "
-                  "Liability in respect of services is dealt with in the engagement agreement."),
-            ]),
-            ("Governing law", [
-                P("These terms are governed by the law of England and Wales, and the courts of "
-                  "England and Wales have exclusive jurisdiction."),
             ]),
             ("Contact", [
                 P("Questions about these terms: <a href=\"mailto:%s\">%s</a>." % (EMAIL, EMAIL)),
@@ -1814,7 +1729,6 @@ def main():
         build_industry(i)
     build_about()
     build_case_studies()
-    build_insights()
     build_contact()
     build_legal()
     build_404()
