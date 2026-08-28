@@ -343,14 +343,41 @@
     opts = opts || {};
     var status = $('.form-status', form);
     var submit = $('button[type="submit"]', form);
-    // The dial-code picker is not validated on its own — it always has a value
-    // and is read as part of the telephone number.
+    var dial = $('select[name="dial_code"]', form);
+    // The dial-code picker is read as part of the telephone number, not
+    // validated on its own.
     var fields = $$('.field input, .field textarea, .field select', form)
       .filter(function (f) { return f.name !== 'dial_code'; });
-    var dial = $('select[name="dial_code"]', form);
     var sending = false;
 
+    function shown(f) {
+      var wrap = f.closest('.field');
+      return !(wrap && wrap.hasAttribute('hidden'));
+    }
     function setError(f, on) { f.closest('.field').classList.toggle('invalid', on); }
+
+    /* -- "Something else" reveals a box to type the real answer ---------- */
+    var picker = $('select[data-other]', form);
+    if (picker) {
+      var otherWrap = $('#' + picker.getAttribute('data-other') + 'Wrap', form);
+      var otherInput = $('#' + picker.getAttribute('data-other'), form);
+      var otherValue = picker.getAttribute('data-other-value');
+
+      var syncOther = function (focus) {
+        var on = picker.value === otherValue;
+        otherWrap.hidden = !on;
+        if (on) {
+          otherInput.setAttribute('required', 'required');
+          if (focus) otherInput.focus();
+        } else {
+          otherInput.removeAttribute('required');
+          otherInput.value = '';
+          setError(otherInput, false);
+        }
+      };
+      picker.addEventListener('change', function () { syncOther(true); });
+      syncOther(false);
+    }
 
     fields.forEach(function (f) {
       var ev = (f.tagName === 'SELECT') ? 'change' : 'input';
@@ -364,17 +391,18 @@
       status.textContent = text;
     }
 
-    // If the send fails we do not hijack the visitor with a mail-client popup.
-    // We offer one prefilled link instead, so the enquiry is still one click away.
-    function offerMailLink(payload) {
-      var lines = fields.map(function (f) {
-        var v = f.value.trim();
-        if (f.type === 'tel' && dial) v = formatPhone(v, dial.value);
-        return labelFor(f, form) + ': ' + (v || '—');
-      });
-      var who = (payload.Company || payload['Your name'] || '').trim();
+    function valueOf(f) {
+      var v = (f.value || '').trim();
+      return (f.type === 'tel' && dial) ? formatPhone(v, dial.value) : v;
+    }
+
+    // If sending fails we do not hijack the visitor with a mail-client popup.
+    // We offer one prefilled link instead, so the enquiry is one click away.
+    function offerMailLink(readable) {
+      var lines = Object.keys(readable).filter(function (k) { return k.charAt(0) !== '_'; })
+        .map(function (k) { return k + ': ' + (readable[k] || '—'); });
       var href = 'mailto:' + MAIL +
-        '?subject=' + encodeURIComponent((opts.subject || 'Enquiry') + (who ? ' — ' + who : '')) +
+        '?subject=' + encodeURIComponent(readable._subject || 'Enquiry') +
         '&body=' + encodeURIComponent(lines.join('\n'));
 
       status.className = 'form-status show warn';
@@ -390,61 +418,104 @@
       e.preventDefault();
       if (sending) return;
 
+      var live = fields.filter(shown);
       var bad = null;
-      fields.forEach(function (f) {
+      live.forEach(function (f) {
         var ok = validate(f);
         setError(f, !ok);
         if (!ok && !bad) bad = f;
       });
       if (bad) { bad.focus(); return; }
 
-      var payload = {};
-      fields.forEach(function (f) {
-        var v = f.value.trim();
-        if (f.type === 'tel' && dial) v = formatPhone(v, dial.value);
-        payload[labelFor(f, form)] = v;
+      // Two shapes: one a person reads in an email, one a spreadsheet can
+      // put in columns.
+      var readable = {};
+      var record = { form: opts.label || formId, page: location.pathname };
+      live.forEach(function (f) {
+        var v = valueOf(f);
+        readable[labelFor(f, form)] = v;
+        record[f.name || f.id] = v;
       });
-      payload._subject = (opts.subject || 'Website enquiry') +
-        (payload.Company ? ' — ' + payload.Company : '');
-      payload._template = 'table';
+      // Fold the free-text answer into the company type so the sheet has one
+      // column that is always meaningful.
+      if (record.company_type_other) {
+        record.company_type = record.company_type_other;
+        delete record.company_type_other;
+      }
+      record.referrer = document.referrer || '';
+      readable._subject = (opts.subject || 'Website enquiry') +
+        (record.company ? ' — ' + record.company : '');
+      readable._template = 'table';
 
       track(opts.event || 'contact_form_submit', { location: opts.location || 'page' });
 
-      var endpoint = form.getAttribute('data-endpoint');
-      if (!endpoint || !endpoint.trim()) { offerMailLink(payload); return; }
+      var jobs = [];
+      var mailEndpoint = form.getAttribute('data-endpoint');
+      var sheetEndpoint = form.getAttribute('data-sheet');
+
+      if (mailEndpoint && mailEndpoint.trim()) {
+        jobs.push(fetch(mailEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(readable)
+        }).then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json().catch(function () { return {}; });
+        }).then(function (d) {
+          if (d && d.success === 'false') throw new Error(d.message || 'rejected');
+          return 'mail';
+        }));
+      }
+
+      if (sheetEndpoint && sheetEndpoint.trim()) {
+        // text/plain keeps this a "simple" request, so the browser skips the
+        // preflight that Apps Script does not answer.
+        jobs.push(fetch(sheetEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(record)
+        }).then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return 'sheet';
+        }));
+      }
+
+      if (!jobs.length) { offerMailLink(readable); return; }
 
       sending = true;
-      if (submit) { submit.disabled = true; }
+      if (submit) submit.disabled = true;
       say('Sending…');
 
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function (r) {
-        if (!r.ok) throw new Error(r.status);
-        return r.json().catch(function () { return {}; });
-      }).then(function (data) {
-        if (data && data.success === 'false') throw new Error(data.message || 'rejected');
+      // Settle every job, then succeed if any route got through: an enquiry
+      // that reached the inbox is not a failure because the log was down.
+      Promise.all(jobs.map(function (j) {
+        return j.then(function (v) { return { ok: true, v: v }; },
+                      function (e) { return { ok: false, e: e }; });
+      })).then(function (results) {
+        var delivered = results.filter(function (r) { return r.ok; });
+        if (!delivered.length) { offerMailLink(readable); return; }
+
         say(opts.sent || 'Thanks — we have got your details and will come back to you within one working day.', true);
         form.reset();
         if (dial) dial.selectedIndex = 0;
-        track((opts.event || 'contact_form_submit') + '_success', { location: opts.location || 'page' });
-      }).catch(function () {
-        offerMailLink(payload);
+        if (picker) picker.dispatchEvent(new Event('change'));
+        track((opts.event || 'contact_form_submit') + '_success',
+              { location: opts.location || 'page', label: delivered.map(function (r) { return r.v; }).join('+') });
       }).then(function () {
         sending = false;
-        if (submit) { submit.disabled = false; }
+        if (submit) submit.disabled = false;
       });
     });
   }
 
   wireForm('auditForm', {
+    label: 'Audit form',
     event: 'book_audit_submit', location: 'audit_section',
     subject: 'Free automation audit request',
     sent: 'Thanks — your request is with us. We will call to arrange your audit within one working day.'
   });
   wireForm('contactForm', {
+    label: 'Contact page',
     event: 'contact_form_submit', location: 'contact_page',
     subject: 'Website enquiry'
   });

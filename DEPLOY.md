@@ -107,7 +107,36 @@ field left blank, so nothing renders as a visible placeholder until it is real.
 | Legal review | `/privacy/`, `/cookies/`, `/terms/` | Written to be accurate about how the site actually behaves, but each carries a visible "pending legal review" callout |
 | First case study | `build_case_studies()` in `_src/build.py` | There are no clients yet. The page publishes the *format* instead of inventing results |
 | Real form delivery | `data-endpoint` on `#auditForm` and `#contactForm` | Static hosting has no server, so both forms validate then hand off to the visitor's mail client. Set an endpoint and they POST JSON instead |
+| Leads spreadsheet | `SHEET_ENDPOINT` in `_src/content.py` | Deploy `_src/sheet-logger.gs` as a Google Apps Script web app and paste its `/exec` URL here. See **The leads spreadsheet** below |
 | Analytics | subscribe to the `da:track` event in `assets/js/site.js` | No third-party script and no cookies ship by default |
+
+### The leads spreadsheet
+
+Every submission is sent to two places at once: the email relay, and a Google
+Sheet that logs it as a row. A submission counts as delivered if **either** gets
+through, so a spreadsheet outage never costs an enquiry.
+
+`_src/sheet-logger.gs` is the Apps Script. Setup, once:
+
+1. `sheets.new`, name it *Digital Autonomous — Leads*.
+2. **Extensions → Apps Script**, paste the file in, save.
+3. **Run → setup**, and authorise it. This builds the *Leads* and *Dashboard*
+   tabs, the status dropdown and the conditional formatting.
+4. **Deploy → New deployment → Web app**, execute as *Me*, access *Anyone*.
+5. Copy the `/exec` URL into `SHEET_ENDPOINT`, rebuild, push.
+
+The *Leads* tab has a column per field plus **Status**, **Follow up on** and
+**Notes** for working the pipeline. The *Dashboard* tab is formula-driven, so it
+stays live as those columns are edited: totals, last 7 and 30 days, a breakdown
+by status, company type and source, and a list of leads still marked New.
+
+Editing the script later needs **Deploy → Manage deployments → New version**, or
+the old code keeps running.
+
+Two notes on limits. Apps Script web apps do not answer CORS preflights, so the
+browser posts `text/plain` and the script parses the body itself — do not
+"fix" that to `application/json`. And the sheet is a log, not a database: if it
+ever grows past a few thousand rows, move the Dashboard queries to a pivot table.
 
 ### The claims rule
 

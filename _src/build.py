@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from content import (  # noqa: E402
     SITE, EMAIL, BRAND, DESCRIPTOR, TAGLINE, FOUNDER, LOCATION,
-    FORM_ENDPOINT, COMPANY_TYPES, DIAL_CODES, DIAL_DIVIDER,
+    FORM_ENDPOINT, SHEET_ENDPOINT, COMPANY_TYPES, OTHER_OPTION,
+    DIAL_CODES, DIAL_DIVIDER,
     PHONE, LINKEDIN, LINKEDIN_FOUNDER, COMPANY_NAME, COMPANY_NUMBER,
     REGISTERED_OFFICE, LEGAL_UPDATED, ICONS, INTEGRATIONS, PROBLEMS,
     SERVICES, SERVICE_BY_SLUG, INDUSTRIES, INDUSTRY_BY_SLUG, PROCESS,
@@ -482,7 +483,7 @@ def audit_section(home=False):
         <div class="audit-form">
           <h3>Book your free audit</h3>
           <p class="audit-form-lede">A few details and we will get back to you to find a time.</p>
-          <form id="auditForm" data-endpoint="%(endpoint)s" novalidate>
+          <form id="auditForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s" novalidate>
             <div class="field">
               <label for="aName">Your name <span aria-hidden="true">*</span></label>
               <input type="text" id="aName" name="name" autocomplete="name" required
@@ -509,6 +510,7 @@ def audit_section(home=False):
               %(atype)s
               <div class="field-error" id="aTypeErr">Please pick the closest match.</div>
             </div>
+            %(aother)s
             <button type="submit" class="btn btn-primary" style="width:100%%"
                     data-track="book_audit_submit" data-track-location="audit_section">
               Book My Free Automation Audit</button>
@@ -523,8 +525,8 @@ def audit_section(home=False):
 </section>
 """ % dict(items=items, map=icon("map"), clock=icon("clock"),
            check=icon("check", stroke="2.4"), doc=icon("doc"),
-           adial=dial_select("aCode"), atype=company_type_select("aType"),
-           endpoint=FORM_ENDPOINT,
+           adial=dial_select("aCode"), atype=company_type_select("aType", "aOther"), aother=company_type_other("aOther"),
+           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT,
            mail='<a href="mailto:%s" style="color:var(--cyan)">%s</a>' % (EMAIL, EMAIL))
 
 
@@ -729,11 +731,22 @@ def dial_select(field_id):
             '</select>' % (field_id, field_id, top, rest))
 
 
-def company_type_select(field_id):
+def company_type_select(field_id, other_id):
     opts = "".join('<option value="%s">%s</option>' % (t, t) for t in COMPANY_TYPES)
-    return ('<select id="%s" name="company_type" required aria-describedby="%sErr">'
+    return ('<select id="%s" name="company_type" required aria-describedby="%sErr" '
+            'data-other="%s" data-other-value="%s">'
             '<option value="" selected disabled>Please choose…</option>%s</select>'
-            % (field_id, field_id, opts))
+            % (field_id, field_id, other_id, OTHER_OPTION, opts))
+
+
+def company_type_other(field_id):
+    """Free-text box, revealed only when the picker lands on the catch-all."""
+    return ('<div class="field field-other" id="%sWrap" hidden>'
+            '<label for="%s">Tell us what kind <span aria-hidden="true">*</span></label>'
+            '<input type="text" id="%s" name="company_type_other" '
+            'aria-describedby="%sErr" placeholder="e.g. veterinary practice">'
+            '<div class="field-error" id="%sErr">Please tell us what kind of company this is.</div>'
+            '</div>' % (field_id, field_id, field_id, field_id, field_id))
 
 
 def demo_section():
@@ -1342,7 +1355,7 @@ def build_contact():
       <h2 style="font-family:'Montserrat';font-weight:700;font-size:1.5rem;color:var(--white);margin-bottom:.5rem">Tell us about your business</h2>
       <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.8rem">The more you tell us
         about how enquiries reach you, the more useful the audit will be.</p>
-      <form id="contactForm" data-endpoint="%(endpoint)s" novalidate>
+      <form id="contactForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s" novalidate>
         <div class="field">
           <label for="cName">Your name <span aria-hidden="true">*</span></label>
           <input type="text" id="cName" name="name" autocomplete="name" required
@@ -1369,6 +1382,7 @@ def build_contact():
           %(ctype)s
           <div class="field-error" id="cTypeErr">Please pick the closest match.</div>
         </div>
+        %(cother)s
         <div class="field">
           <label for="cCompany">Company</label>
           <input type="text" id="cCompany" name="company" autocomplete="organization"
@@ -1404,8 +1418,8 @@ def build_contact():
 </section>
 """ % dict(crumbs=crumbs([("/", "Home"), (None, "Contact")]),
            methods="".join(methods), audit=audit_items, email=EMAIL,
-           cdial=dial_select("cCode"), ctype=company_type_select("cType"),
-           endpoint=FORM_ENDPOINT)
+           cdial=dial_select("cCode"), ctype=company_type_select("cType", "cOther"), cother=company_type_other("cOther"),
+           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT)
 
     ld = [
         """{

@@ -39,9 +39,17 @@ LEGAL_UPDATED = "28 August 2026"
 # --------------------------------------------------------------------------
 FORM_ENDPOINT = "https://formsubmit.co/ajax/" + EMAIL
 
+# Google Apps Script web app that appends each submission to the leads
+# spreadsheet. Paste the deployment URL here — see _src/sheet-logger.gs for the
+# script and DEPLOY.md for the five-minute setup. Left blank, forms still work
+# and simply do not log a row.
+SHEET_ENDPOINT = ""
+
 # --------------------------------------------------------------------------
 # "What type of company is this?" — broad enough that nobody has to think hard.
 # --------------------------------------------------------------------------
+OTHER_OPTION = "Something else"
+
 COMPANY_TYPES = [
     "Dental practice",
     "Healthcare or aesthetics clinic",
@@ -60,7 +68,7 @@ COMPANY_TYPES = [
     "Recruitment or staffing",
     "Construction",
     "Non-profit or public sector",
-    "Something else",
+    OTHER_OPTION,
 ]
 
 
