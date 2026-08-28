@@ -344,6 +344,7 @@
     var status = $('.form-status', form);
     var submit = $('button[type="submit"]', form);
     var dial = $('select[name="dial_code"]', form);
+    var trap = $('input[name="website"]', form);   // honeypot: only a bot fills this
     // The dial-code picker is read as part of the telephone number, not
     // validated on its own.
     var fields = $$('.field input, .field textarea, .field select', form)
@@ -443,6 +444,8 @@
         delete record.company_type_other;
       }
       record.referrer = document.referrer || '';
+      record.token = form.getAttribute('data-token') || '';
+      record.website = trap ? trap.value : '';       // the script rejects a filled trap
       readable._subject = (opts.subject || 'Website enquiry') +
         (record.company ? ' — ' + record.company : '');
       readable._template = 'table';

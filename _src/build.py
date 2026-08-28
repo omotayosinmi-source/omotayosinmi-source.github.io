@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from content import (  # noqa: E402
     SITE, EMAIL, BRAND, DESCRIPTOR, TAGLINE, FOUNDER, LOCATION,
-    FORM_ENDPOINT, SHEET_ENDPOINT, COMPANY_TYPES, OTHER_OPTION,
+    FORM_ENDPOINT, SHEET_ENDPOINT, SHEET_TOKEN, COMPANY_TYPES, OTHER_OPTION,
     DIAL_CODES, DIAL_DIVIDER,
     PHONE, LINKEDIN, LINKEDIN_FOUNDER, COMPANY_NAME, COMPANY_NUMBER,
     REGISTERED_OFFICE, LEGAL_UPDATED, ICONS, INTEGRATIONS, PROBLEMS,
@@ -483,7 +483,8 @@ def audit_section(home=False):
         <div class="audit-form">
           <h3>Book your free audit</h3>
           <p class="audit-form-lede">A few details and we will get back to you to find a time.</p>
-          <form id="auditForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s" novalidate>
+          <form id="auditForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s"
+                  data-token="%(token)s" novalidate>%(honey)s
             <div class="field">
               <label for="aName">Your name <span aria-hidden="true">*</span></label>
               <input type="text" id="aName" name="name" autocomplete="name" required
@@ -526,7 +527,8 @@ def audit_section(home=False):
 """ % dict(items=items, map=icon("map"), clock=icon("clock"),
            check=icon("check", stroke="2.4"), doc=icon("doc"),
            adial=dial_select("aCode"), atype=company_type_select("aType", "aOther"), aother=company_type_other("aOther"),
-           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT,
+           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT, token=SHEET_TOKEN,
+           honey=honeypot("aTrap"),
            mail='<a href="mailto:%s" style="color:var(--cyan)">%s</a>' % (EMAIL, EMAIL))
 
 
@@ -737,6 +739,14 @@ def company_type_select(field_id, other_id):
             'data-other="%s" data-other-value="%s">'
             '<option value="" selected disabled>Please choose…</option>%s</select>'
             % (field_id, field_id, other_id, OTHER_OPTION, opts))
+
+
+def honeypot(field_id):
+    """A field only an automated script would fill in. Off-screen, skipped by
+    the keyboard, and hidden from screen readers."""
+    return ('<label class="sr-only" for="%s">Leave this field empty</label>'
+            '<input class="sr-only" type="text" id="%s" name="website" tabindex="-1" '
+            'autocomplete="off" aria-hidden="true">' % (field_id, field_id))
 
 
 def company_type_other(field_id):
@@ -1355,7 +1365,8 @@ def build_contact():
       <h2 style="font-family:'Montserrat';font-weight:700;font-size:1.5rem;color:var(--white);margin-bottom:.5rem">Tell us about your business</h2>
       <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.8rem">The more you tell us
         about how enquiries reach you, the more useful the audit will be.</p>
-      <form id="contactForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s" novalidate>
+      <form id="contactForm" data-endpoint="%(endpoint)s" data-sheet="%(sheet)s"
+                  data-token="%(token)s" novalidate>%(honey)s
         <div class="field">
           <label for="cName">Your name <span aria-hidden="true">*</span></label>
           <input type="text" id="cName" name="name" autocomplete="name" required
@@ -1419,7 +1430,8 @@ def build_contact():
 """ % dict(crumbs=crumbs([("/", "Home"), (None, "Contact")]),
            methods="".join(methods), audit=audit_items, email=EMAIL,
            cdial=dial_select("cCode"), ctype=company_type_select("cType", "cOther"), cother=company_type_other("cOther"),
-           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT)
+           endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT, token=SHEET_TOKEN,
+           honey=honeypot("cTrap"))
 
     ld = [
         """{

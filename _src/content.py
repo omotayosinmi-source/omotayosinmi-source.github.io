@@ -45,6 +45,12 @@ FORM_ENDPOINT = "https://formsubmit.co/ajax/" + EMAIL
 # and simply do not log a row.
 SHEET_ENDPOINT = ""
 
+# Must match SHARED_TOKEN in _src/sheet-logger.gs. The web app has to accept
+# anonymous requests (a visitor's browser is not signed into Google), so this
+# turns away anything that finds the URL without also reading the page source.
+# It is not a secret — it is a doormat, not a lock.
+SHEET_TOKEN = "da-wxFZTutTCD56fDUtoue41_YJeMM5OULh"
+
 # --------------------------------------------------------------------------
 # "What type of company is this?" — broad enough that nobody has to think hard.
 # --------------------------------------------------------------------------

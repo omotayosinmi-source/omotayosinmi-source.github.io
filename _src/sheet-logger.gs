@@ -21,7 +21,31 @@
  *
  * Changing this script later needs Deploy > Manage deployments > edit > New
  * version, otherwise the old code keeps running.
+ *
+ * WHY "ANYONE" FOR WHO HAS ACCESS
+ * -------------------------------
+ * "Anyone" here means "no Google sign-in required". It has to be that, because
+ * the request comes from a visitor's browser and visitors are not signed into
+ * Google. "Anyone with Google Account" would bounce them to a login screen and
+ * the submission would fail.
+ *
+ * It does NOT share the spreadsheet. Callers cannot open it, read it, or run
+ * anything except doGet and doPost below. doPost only ever appends one row.
+ * The script runs as you ("Execute as: Me"), which is what lets it write to
+ * your sheet — so the code, not the caller, decides what happens.
+ *
+ * The real exposure is that the URL sits in the page source, so a bot could
+ * post junk rows. Three things guard against that: a honeypot field, a shared
+ * token, and a check that a submission has a name and a way to reply. If spam
+ * ever does get through, change SHARED_TOKEN here and in _src/content.py, then
+ * redeploy — that alone invalidates every scraped copy of the URL.
  */
+
+// Must match SHEET_TOKEN in _src/content.py. The web app has to accept
+// anonymous requests, because a visitor's browser is not signed into Google.
+// This turns away anything that finds the URL without also reading the page
+// source. It is a doormat, not a lock — see WHY "ANYONE" below.
+var SHARED_TOKEN = 'da-wxFZTutTCD56fDUtoue41_YJeMM5OULh';
 
 var SHEET_NAME = 'Leads';
 var DASH_NAME = 'Dashboard';
@@ -56,13 +80,31 @@ var BLUE = '#00a6fb';
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var sheet = ensureSheet();
 
+    // 1. A filled honeypot means an automated submission. Answer normally so
+    //    the sender learns nothing, but write nothing down.
+    if (data.website) return json({ ok: true });
+
+    // 2. Wrong or missing token: not from our forms.
+    if (SHARED_TOKEN && data.token !== SHARED_TOKEN) {
+      return json({ ok: false, error: 'rejected' });
+    }
+
+    // 3. Junk filter: a real enquiry has a name and a way to reply.
+    var name = clean(data.name, 120);
+    var email = clean(data.email, 160);
+    var phone = clean(data.phone, 40);
+    if (!name || (!email && !phone)) return json({ ok: false, error: 'incomplete' });
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return json({ ok: false, error: 'bad email' });
+    }
+
+    var sheet = ensureSheet();
     var row = COLUMNS.map(function (c) {
       if (c.key === 'received') return new Date();
       if (c.key === 'status') return 'New';
       if (c.key === 'followup' || c.key === 'notes') return '';
-      return data[c.key] || '';
+      return clean(data[c.key], c.key === 'message' ? 2000 : 300);
     });
 
     sheet.appendRow(row);
@@ -74,10 +116,16 @@ function doPost(e) {
     // Record the failure rather than losing it silently.
     try {
       ensureSheet().appendRow([new Date(), 'COULD NOT READ SUBMISSION', String(err),
-                               (e && e.postData ? e.postData.contents : '').slice(0, 500)]);
+                               String((e && e.postData ? e.postData.contents : '')).slice(0, 500)]);
     } catch (ignored) {}
     return json({ ok: false, error: String(err) });
   }
+}
+
+// Trim, cap the length, and never let a value start a spreadsheet formula.
+function clean(v, max) {
+  var s = String(v === undefined || v === null ? '' : v).trim().slice(0, max || 300);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
 }
 
 // A browser opening the URL should see something friendly, not an error.
