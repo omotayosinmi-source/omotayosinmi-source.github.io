@@ -521,6 +521,8 @@ header.scrolled{border-color:var(--navy-800);background:rgba(5,16,31,.94)}
 .field input::placeholder,.field textarea::placeholder{color:#657391}
 .field input:hover,.field textarea:hover,.field select:hover{border-color:var(--navy-600)}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue);outline-offset:1px}
+.field .hint{font-size:.78rem;color:var(--muted);margin-top:.4rem;line-height:1.5}
+.field.invalid .hint{display:none}
 .field-error{color:#ff9b9b;font-size:.8rem;margin-top:.35rem;display:none}
 .field.invalid input,.field.invalid textarea{border-color:#ff9b9b}
 .field.invalid .field-error{display:block}

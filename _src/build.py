@@ -499,8 +499,9 @@ def audit_section(home=False):
               <label for="aPhone">Telephone number <span aria-hidden="true">*</span></label>
               <div class="phone-row">%(adial)s
                 <input type="tel" id="aPhone" name="phone" autocomplete="tel" required
-                       aria-describedby="aPhoneErr" placeholder="7700 900000">
+                       aria-describedby="aPhoneHint aPhoneErr" placeholder="07700 900000">
               </div>
+              <p class="hint" id="aPhoneHint">With or without the leading 0 — either works.</p>
               <div class="field-error" id="aPhoneErr">Please enter a telephone number we can reach you on.</div>
             </div>
             <div class="field">
@@ -1358,8 +1359,9 @@ def build_contact():
           <label for="cPhone">Telephone number <span aria-hidden="true">*</span></label>
           <div class="phone-row">%(cdial)s
             <input type="tel" id="cPhone" name="phone" autocomplete="tel" required
-                   aria-describedby="cPhoneErr" placeholder="7700 900000">
+                   aria-describedby="cPhoneHint cPhoneErr" placeholder="07700 900000">
           </div>
+          <p class="hint" id="cPhoneHint">With or without the leading 0 — either works.</p>
           <div class="field-error" id="cPhoneErr">Please enter a number we can reach you on.</div>
         </div>
         <div class="field">

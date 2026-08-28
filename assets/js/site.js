@@ -302,6 +302,30 @@
     return el.textContent.replace('*', '').replace(/\s+/g, ' ').trim();
   }
 
+  // Countries that keep the national trunk "0" when dialled from abroad.
+  // Almost everywhere drops it; Italy is the notable exception.
+  var KEEPS_TRUNK_ZERO = { '+39': true };
+
+  // Join a dialling code to a number the way it would actually be dialled,
+  // whichever way the visitor typed it: 07380 892559, 7380892559,
+  // +44 7380 892559 and 0044 7380892559 all come out the same.
+  function formatPhone(raw, code) {
+    var cc = String(code).replace(/\D/g, '');
+    var trimmed = String(raw).trim();
+    var digits = trimmed.replace(/\D/g, '');
+
+    // Only treat the entry as international when the visitor said so, so a
+    // plain national number is never mistaken for a repeated country code.
+    var international = trimmed.charAt(0) === '+' || /^00\d/.test(digits);
+    if (international) {
+      if (digits.indexOf('00') === 0) digits = digits.slice(2);
+      if (cc && digits.indexOf(cc) === 0) digits = digits.slice(cc.length);
+    }
+
+    if (!KEEPS_TRUNK_ZERO[code]) digits = digits.replace(/^0+/, '');
+    return digits ? code + ' ' + digits : code;
+  }
+
   function validate(field) {
     var v = (field.value || '').trim();
     if (!field.hasAttribute('required') && !v) return true;
@@ -345,7 +369,7 @@
     function offerMailLink(payload) {
       var lines = fields.map(function (f) {
         var v = f.value.trim();
-        if (f.type === 'tel' && dial) v = dial.value + ' ' + v;
+        if (f.type === 'tel' && dial) v = formatPhone(v, dial.value);
         return labelFor(f, form) + ': ' + (v || '—');
       });
       var who = (payload.Company || payload['Your name'] || '').trim();
@@ -377,7 +401,7 @@
       var payload = {};
       fields.forEach(function (f) {
         var v = f.value.trim();
-        if (f.type === 'tel' && dial) v = dial.value + ' ' + v;
+        if (f.type === 'tel' && dial) v = formatPhone(v, dial.value);
         payload[labelFor(f, form)] = v;
       });
       payload._subject = (opts.subject || 'Website enquiry') +
