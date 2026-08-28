@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from content import (  # noqa: E402
     SITE, EMAIL, BRAND, DESCRIPTOR, TAGLINE, FOUNDER, LOCATION,
+    FORM_ENDPOINT, COMPANY_TYPES, DIAL_CODES, DIAL_DIVIDER,
     PHONE, LINKEDIN, LINKEDIN_FOUNDER, COMPANY_NAME, COMPANY_NUMBER,
     REGISTERED_OFFICE, LEGAL_UPDATED, ICONS, INTEGRATIONS, PROBLEMS,
     SERVICES, SERVICE_BY_SLUG, INDUSTRIES, INDUSTRY_BY_SLUG, PROCESS,
@@ -239,7 +240,8 @@ def footer(home=False):
     detail = ['<a href="mailto:%s">%s</a>' % (EMAIL, EMAIL)]
     if PHONE:
         detail.append('<a href="tel:%s">%s</a>' % (re.sub(r"[^\d+]", "", PHONE), PHONE))
-    detail.append(LOCATION)
+    if LOCATION:
+        detail.append(LOCATION)
     # Registered company details are printed only once verified.
     reg = []
     if COMPANY_NAME:
@@ -479,8 +481,8 @@ def audit_section(home=False):
 
         <div class="audit-form">
           <h3>Book your free audit</h3>
-          <p class="audit-form-lede">Three details is all we need to get back to you and find a time.</p>
-          <form id="auditForm" data-endpoint="" novalidate>
+          <p class="audit-form-lede">A few details and we will get back to you to find a time.</p>
+          <form id="auditForm" data-endpoint="%(endpoint)s" novalidate>
             <div class="field">
               <label for="aName">Your name <span aria-hidden="true">*</span></label>
               <input type="text" id="aName" name="name" autocomplete="name" required
@@ -488,23 +490,30 @@ def audit_section(home=False):
               <div class="field-error" id="aNameErr">Please tell us your name.</div>
             </div>
             <div class="field">
-              <label for="aPhone">Telephone number <span aria-hidden="true">*</span></label>
-              <input type="tel" id="aPhone" name="phone" autocomplete="tel" required
-                     aria-describedby="aPhoneErr" placeholder="07700 900000">
-              <div class="field-error" id="aPhoneErr">Please enter a telephone number we can reach you on.</div>
-            </div>
-            <div class="field">
               <label for="aEmail">Email <span aria-hidden="true">*</span></label>
               <input type="email" id="aEmail" name="email" autocomplete="email" required
                      aria-describedby="aEmailErr" placeholder="jane@yourcompany.co.uk">
               <div class="field-error" id="aEmailErr">Please enter a valid email address.</div>
             </div>
+            <div class="field">
+              <label for="aPhone">Telephone number <span aria-hidden="true">*</span></label>
+              <div class="phone-row">%(adial)s
+                <input type="tel" id="aPhone" name="phone" autocomplete="tel" required
+                       aria-describedby="aPhoneErr" placeholder="7700 900000">
+              </div>
+              <div class="field-error" id="aPhoneErr">Please enter a telephone number we can reach you on.</div>
+            </div>
+            <div class="field">
+              <label for="aType">What type of company is this? <span aria-hidden="true">*</span></label>
+              %(atype)s
+              <div class="field-error" id="aTypeErr">Please pick the closest match.</div>
+            </div>
             <button type="submit" class="btn btn-primary" style="width:100%%"
                     data-track="book_audit_submit" data-track-location="audit_section">
               Book My Free Automation Audit</button>
             <div class="form-status" id="auditStatus" role="status" aria-live="polite"></div>
-            <p class="form-note">We use these details once, to arrange your audit. No newsletter,
-              no list, no passing them on. Prefer email? %(mail)s</p>
+            <p class="form-note">We use these details to arrange your audit and for nothing else.
+              No newsletter, no list, no passing them on. Prefer email? %(mail)s</p>
           </form>
         </div>
       </div>
@@ -513,6 +522,8 @@ def audit_section(home=False):
 </section>
 """ % dict(items=items, map=icon("map"), clock=icon("clock"),
            check=icon("check", stroke="2.4"), doc=icon("doc"),
+           adial=dial_select("aCode"), atype=company_type_select("aType"),
+           endpoint=FORM_ENDPOINT,
            mail='<a href="mailto:%s" style="color:var(--cyan)">%s</a>' % (EMAIL, EMAIL))
 
 
@@ -702,6 +713,26 @@ def services_section():
   </div>
 </section>
 """ % "".join(cards)
+
+
+def dial_select(field_id):
+    """Country dialling code picker, common destinations pinned to the top."""
+    top = "".join('<option value="%s">%s &nbsp;%s</option>' % (c, c, n)
+                  for n, c in DIAL_CODES[:DIAL_DIVIDER])
+    rest = "".join('<option value="%s">%s &nbsp;%s</option>' % (c, c, n)
+                   for n, c in DIAL_CODES[DIAL_DIVIDER:])
+    return ('<label class="sr-only" for="%s">Country dialling code</label>'
+            '<select id="%s" name="dial_code" class="dial">'
+            '<optgroup label="Common">%s</optgroup>'
+            '<optgroup label="All countries">%s</optgroup>'
+            '</select>' % (field_id, field_id, top, rest))
+
+
+def company_type_select(field_id):
+    opts = "".join('<option value="%s">%s</option>' % (t, t) for t in COMPANY_TYPES)
+    return ('<select id="%s" name="company_type" required aria-describedby="%sErr">'
+            '<option value="" selected disabled>Please choose…</option>%s</select>'
+            % (field_id, field_id, opts))
 
 
 def demo_section():
@@ -1291,9 +1322,6 @@ def build_contact():
                        '<span class="cico">%s</span><span><span class="k">LinkedIn</span>'
                        '<span class="v">Digital Autonomous</span></span></a>'
                        % (LINKEDIN, icon("users")))
-    methods.append('<div class="cmethod"><span class="cico">%s</span>'
-                   '<span><span class="k">Location</span><span class="v">%s</span></span></div>'
-                   % (icon("map"), LOCATION))
 
     audit_items = "".join('<li>%s%s</li>' % (icon("check", stroke="2.4"), t) for t in AUDIT_STEPS)
 
@@ -1313,7 +1341,7 @@ def build_contact():
       <h2 style="font-family:'Montserrat';font-weight:700;font-size:1.5rem;color:var(--white);margin-bottom:.5rem">Tell us about your business</h2>
       <p style="color:var(--muted);font-size:.95rem;margin-bottom:1.8rem">The more you tell us
         about how enquiries reach you, the more useful the audit will be.</p>
-      <form id="contactForm" data-endpoint="" novalidate>
+      <form id="contactForm" data-endpoint="%(endpoint)s" novalidate>
         <div class="field">
           <label for="cName">Your name <span aria-hidden="true">*</span></label>
           <input type="text" id="cName" name="name" autocomplete="name" required
@@ -1328,9 +1356,16 @@ def build_contact():
         </div>
         <div class="field">
           <label for="cPhone">Telephone number <span aria-hidden="true">*</span></label>
-          <input type="tel" id="cPhone" name="phone" autocomplete="tel" required
-                 aria-describedby="cPhoneErr" placeholder="07700 900000">
+          <div class="phone-row">%(cdial)s
+            <input type="tel" id="cPhone" name="phone" autocomplete="tel" required
+                   aria-describedby="cPhoneErr" placeholder="7700 900000">
+          </div>
           <div class="field-error" id="cPhoneErr">Please enter a number we can reach you on.</div>
+        </div>
+        <div class="field">
+          <label for="cType">What type of company is this? <span aria-hidden="true">*</span></label>
+          %(ctype)s
+          <div class="field-error" id="cTypeErr">Please pick the closest match.</div>
         </div>
         <div class="field">
           <label for="cCompany">Company</label>
@@ -1347,8 +1382,8 @@ def build_contact():
                 data-track="contact_form_submit_click" data-track-location="contact_page">
           Book My Free Automation Audit</button>
         <div class="form-status" id="contactStatus" role="status" aria-live="polite"></div>
-        <p class="form-note">This form opens your email app with the message ready to send —
-          the site is static, so nothing is collected or stored here. Prefer to write directly?
+        <p class="form-note">Sent straight to us the moment you submit. We use your details to
+          answer your enquiry and for nothing else. Prefer to write directly?
           <a href="mailto:%(email)s" style="color:var(--cyan)">%(email)s</a>.</p>
       </form>
     </div>
@@ -1366,7 +1401,9 @@ def build_contact():
   </div>
 </section>
 """ % dict(crumbs=crumbs([("/", "Home"), (None, "Contact")]),
-           methods="".join(methods), audit=audit_items, email=EMAIL)
+           methods="".join(methods), audit=audit_items, email=EMAIL,
+           cdial=dial_select("cCode"), ctype=company_type_select("cType"),
+           endpoint=FORM_ENDPOINT)
 
     ld = [
         """{
@@ -1442,12 +1479,12 @@ def build_legal():
     legal_page(
         "privacy", "Privacy Policy",
         "How Digital Autonomous collects, uses and protects personal data, and the rights "
-        "you have over your information under UK GDPR.",
+        "you have over your information.",
         [
             ("Who we are", [
                 P("For any question about this policy or about your personal data, contact "
                   "<a href=\"mailto:%s\">%s</a>." % (EMAIL, EMAIL)),
-                P("For the purposes of UK data protection law we act as a <strong>controller</strong> "
+                P("For the purposes of data protection law we act as a <strong>controller</strong> "
                   "for data you send us directly, and as a <strong>processor</strong> for personal "
                   "data we handle inside a client's systems on that client's instructions. Where we "
                   "act as a processor, our client's own privacy notice governs that data and a "
@@ -1455,14 +1492,13 @@ def build_legal():
             ]),
             ("What this website collects", [
                 UL([
-                    "<strong>Contact form.</strong> The form on our contact page does not transmit "
-                    "anything to us. It assembles a message and opens your own email application "
-                    "so that you can review and send it. Nothing is stored by the website.",
+                    "<strong>Contact and audit forms.</strong> These collect your name, "
+                    "telephone number, email address, company type and whatever you tell us "
+                    "about your business. They reach us by email through a form-relay service "
+                    "that processes the submission on our behalf and uses it for nothing else. "
+                    "We use the details to answer your enquiry and arrange your audit.",
                     "<strong>Email you send us.</strong> If you email us, we receive your address, "
                     "your message and anything you attach.",
-                    "<strong>Audit request form.</strong> The audit form collects a name, "
-                    "telephone number and email address so that we can contact you to arrange "
-                    "the audit you asked for, and for nothing else.",
                 ]),
             ]),
             ("Why we use it, and our lawful basis", [

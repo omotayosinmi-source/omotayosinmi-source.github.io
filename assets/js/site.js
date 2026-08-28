@@ -288,21 +288,27 @@
    * the markup — a field is required if it carries `required`, and how it
    * is validated comes from its `type` — so adding a field needs no code.
    *
-   * Static hosting has no server to post to, so a validated form hands
-   * off to the visitor's mail client. Setting `data-endpoint` on the form
-   * switches it to a real POST instead; nothing else has to change.
+   * Submissions POST as JSON to the form's `data-endpoint` and the result
+   * is confirmed in place; the visitor is never redirected and no mail
+   * client is opened. If the endpoint is missing or the request fails,
+   * the form falls back to a mail-client hand-off so an enquiry is never
+   * silently lost.
    * ------------------------------------------------------------------ */
+  var MAIL = 'hello@digitalautonomous.co.uk';
+
   function labelFor(input, form) {
     var el = form.querySelector('label[for="' + input.id + '"]');
-    return el ? el.textContent.replace('*', '').trim() : (input.name || input.id);
+    if (!el) return input.name || input.id;
+    return el.textContent.replace('*', '').replace(/\s+/g, ' ').trim();
   }
 
-  function validate(input) {
-    var v = input.value.trim();
-    if (!input.hasAttribute('required') && !v) return true;
-    if (input.type === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-    if (input.type === 'tel') return (v.replace(/[^\d]/g, '').length >= 7);
-    if (input.tagName === 'TEXTAREA') return v.length > 4;
+  function validate(field) {
+    var v = (field.value || '').trim();
+    if (!field.hasAttribute('required') && !v) return true;
+    if (field.tagName === 'SELECT') return v !== '';
+    if (field.type === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    if (field.type === 'tel') return v.replace(/[^\d]/g, '').length >= 6;
+    if (field.tagName === 'TEXTAREA') return v.length > 4;
     return v.length > 1;
   }
 
@@ -312,80 +318,111 @@
 
     opts = opts || {};
     var status = $('.form-status', form);
-    var fields = $$('.field input, .field textarea', form);
+    var submit = $('button[type="submit"]', form);
+    // The dial-code picker is not validated on its own — it always has a value
+    // and is read as part of the telephone number.
+    var fields = $$('.field input, .field textarea, .field select', form)
+      .filter(function (f) { return f.name !== 'dial_code'; });
+    var dial = $('select[name="dial_code"]', form);
+    var sending = false;
 
-    // Clear a field's error as soon as it becomes valid again.
+    function setError(f, on) { f.closest('.field').classList.toggle('invalid', on); }
+
     fields.forEach(function (f) {
-      f.addEventListener('input', function () {
-        if (f.closest('.field').classList.contains('invalid') && validate(f)) {
-          f.closest('.field').classList.remove('invalid');
-        }
+      var ev = (f.tagName === 'SELECT') ? 'change' : 'input';
+      f.addEventListener(ev, function () {
+        if (f.closest('.field').classList.contains('invalid') && validate(f)) setError(f, false);
       });
     });
 
+    function say(text, ok) {
+      status.className = 'form-status show' + (ok ? ' ok' : '');
+      status.textContent = text;
+    }
+
+    // If the send fails we do not hijack the visitor with a mail-client popup.
+    // We offer one prefilled link instead, so the enquiry is still one click away.
+    function offerMailLink(payload) {
+      var lines = fields.map(function (f) {
+        var v = f.value.trim();
+        if (f.type === 'tel' && dial) v = dial.value + ' ' + v;
+        return labelFor(f, form) + ': ' + (v || '—');
+      });
+      var who = (payload.Company || payload['Your name'] || '').trim();
+      var href = 'mailto:' + MAIL +
+        '?subject=' + encodeURIComponent((opts.subject || 'Enquiry') + (who ? ' — ' + who : '')) +
+        '&body=' + encodeURIComponent(lines.join('\n'));
+
+      status.className = 'form-status show warn';
+      status.textContent = 'That did not send. Nothing is lost — ';
+      var a = document.createElement('a');
+      a.href = href;
+      a.textContent = 'send it as an email instead';
+      status.appendChild(a);
+      status.appendChild(document.createTextNode(', or write to ' + MAIL + '.'));
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (sending) return;
 
       var bad = null;
       fields.forEach(function (f) {
         var ok = validate(f);
-        f.closest('.field').classList.toggle('invalid', !ok);
+        setError(f, !ok);
         if (!ok && !bad) bad = f;
       });
       if (bad) { bad.focus(); return; }
 
       var payload = {};
-      fields.forEach(function (f) { payload[f.name || f.id] = f.value.trim(); });
+      fields.forEach(function (f) {
+        var v = f.value.trim();
+        if (f.type === 'tel' && dial) v = dial.value + ' ' + v;
+        payload[labelFor(f, form)] = v;
+      });
+      payload._subject = (opts.subject || 'Website enquiry') +
+        (payload.Company ? ' — ' + payload.Company : '');
+      payload._template = 'table';
+
       track(opts.event || 'contact_form_submit', { location: opts.location || 'page' });
 
       var endpoint = form.getAttribute('data-endpoint');
-      if (endpoint && endpoint.trim()) {
-        status.className = 'form-status show';
-        status.textContent = 'Sending…';
-        fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).then(function (r) {
-          if (!r.ok) throw new Error(r.status);
-          status.className = 'form-status show ok';
-          status.textContent = opts.sent ||
-            'Thanks — we will come back to you within one working day.';
-          form.reset();
-        }).catch(function () {
-          status.className = 'form-status show';
-          status.textContent = 'Something went wrong. Please email ' + MAIL + ' directly.';
-        });
-        return;
-      }
+      if (!endpoint || !endpoint.trim()) { offerMailLink(payload); return; }
 
-      // Mail-client hand-off: build a readable message from the fields.
-      var lines = fields.map(function (f) {
-        return labelFor(f, form) + ': ' + (f.value.trim() || '—');
+      sending = true;
+      if (submit) { submit.disabled = true; }
+      say('Sending…');
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json().catch(function () { return {}; });
+      }).then(function (data) {
+        if (data && data.success === 'false') throw new Error(data.message || 'rejected');
+        say(opts.sent || 'Thanks — we have got your details and will come back to you within one working day.', true);
+        form.reset();
+        if (dial) dial.selectedIndex = 0;
+        track((opts.event || 'contact_form_submit') + '_success', { location: opts.location || 'page' });
+      }).catch(function () {
+        offerMailLink(payload);
+      }).then(function () {
+        sending = false;
+        if (submit) { submit.disabled = false; }
       });
-      var who = (payload.company || payload.name || '').trim();
-      var subject = (opts.subject || 'Automation audit request') + (who ? ' — ' + who : '');
-
-      window.location.href = 'mailto:' + MAIL +
-        '?subject=' + encodeURIComponent(subject) +
-        '&body=' + encodeURIComponent(lines.join('\n'));
-
-      status.className = 'form-status show ok';
-      status.textContent = 'Your email app should have opened with the details ready to send. ' +
-        'If nothing happened, email ' + MAIL + ' directly.';
     });
   }
-
-  var MAIL = 'hello@digitalautonomous.co.uk';
 
   wireForm('auditForm', {
     event: 'book_audit_submit', location: 'audit_section',
     subject: 'Free automation audit request',
-    sent: 'Thanks — we will call you to arrange your audit within one working day.'
+    sent: 'Thanks — your request is with us. We will call to arrange your audit within one working day.'
   });
   wireForm('contactForm', {
     event: 'contact_form_submit', location: 'contact_page',
-    subject: 'Automation audit enquiry'
+    subject: 'Website enquiry'
   });
 
   /* ------------------------------------------------------------------ *
