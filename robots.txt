@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
+# Generator source is not content.
+Disallow: /_src/
+
 Sitemap: https://digitalautonomous.co.uk/sitemap.xml

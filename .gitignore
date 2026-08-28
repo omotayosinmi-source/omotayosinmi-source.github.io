@@ -5,3 +5,7 @@
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Python bytecode from the site generator
+__pycache__/
+*.pyc

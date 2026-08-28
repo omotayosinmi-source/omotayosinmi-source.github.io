@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Lato:wght@400&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1200px;height:630px;overflow:hidden;background:#05101f;
+       font-family:'Lato',sans-serif;position:relative}
+  .grid{position:absolute;inset:0;opacity:.55;
+    background-image:linear-gradient(#0e2249 1px,transparent 1px),
+                     linear-gradient(90deg,#0e2249 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 78% 20%,#000 15%,transparent 72%)}
+  .glow{position:absolute;top:-24%;right:-12%;width:760px;height:760px;
+    background:radial-gradient(circle,rgba(0,166,251,.20),transparent 62%);filter:blur(6px)}
+  .in{position:relative;padding:64px 88px}
+  .brand{display:flex;align-items:center;gap:18px;margin-bottom:48px}
+  .mark{width:60px;height:60px;border-radius:15px;flex:none;
+    background:linear-gradient(160deg,#0e2249,#0a1a3a);border:1px solid #173463;
+    display:grid;place-items:center}
+  .mark svg{width:38px;height:38px}
+  .name{font-family:'Montserrat';font-weight:700;font-size:34px;color:#fff;letter-spacing:.005em}
+  .eyebrow{font-family:'Montserrat';font-weight:600;font-size:16px;letter-spacing:.24em;
+    text-transform:uppercase;color:#66d2f9;display:flex;align-items:center;gap:16px;margin-bottom:26px}
+  .eyebrow::before{content:"";width:34px;height:1px;background:#66d2f9;opacity:.75}
+  h1{font-family:'Montserrat';font-weight:800;font-size:62px;line-height:1.06;
+     letter-spacing:-.025em;color:#fff;margin-bottom:26px}
+  h1 em{font-style:normal;color:#00a6fb}
+  p{font-size:23px;line-height:1.5;color:#9aa7c0;max-width:41ch}
+  .foot{position:absolute;left:88px;bottom:74px;display:flex;align-items:center;gap:20px}
+  .url{font-family:'Montserrat';font-weight:600;font-size:19px;color:#66d2f9;letter-spacing:.02em}
+  .chip{font-family:'Montserrat';font-weight:600;font-size:14px;letter-spacing:.12em;
+    text-transform:uppercase;color:#66d2f9;background:rgba(0,166,251,.1);
+    border:1px solid rgba(0,166,251,.28);padding:7px 15px;border-radius:20px}
+  .bar{position:absolute;left:0;right:0;bottom:0;height:9px;
+    background:linear-gradient(90deg,#00a6fb,#66d2f9 55%,#00a6fb)}
+</style>
+</head>
+<body>
+  <div class="grid"></div><div class="glow"></div>
+  <div class="in">
+    <div class="brand">
+      <span class="mark">
+        <svg viewBox="0 0 40 40" fill="none">
+          <polyline points="5,31 15,23 22,27 33,10" stroke="#00a6fb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M33 10 L26.5 10.5 M33 10 L32 16.5" stroke="#66d2f9" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="5" cy="31" r="2.7" fill="#66d2f9"/><circle cx="15" cy="23" r="2.7" fill="#fff"/>
+          <circle cx="22" cy="27" r="2.7" fill="#66d2f9"/><circle cx="33" cy="10" r="3.1" fill="#00a6fb"/>
+        </svg>
+      </span>
+      <span class="name">Digital Autonomous</span>
+    </div>
+    <div class="eyebrow">Intelligence · Automation · Acceleration</div>
+    <h1>More revenue.<br>Lower costs.<br><em>Time back.</em></h1>
+    <p>Systems that answer enquiries, recover missed calls, book appointments and automate follow-up.</p>
+  </div>
+  <div class="foot">
+    <span class="url">digitalautonomous.co.uk</span>
+    <span class="chip">Free automation audit</span>
+  </div>
+  <div class="bar"></div>
+</body>
+</html>
