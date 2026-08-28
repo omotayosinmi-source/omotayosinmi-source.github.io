@@ -133,6 +133,16 @@ by status, company type and source, and a list of leads still marked New.
 Editing the script later needs **Deploy → Manage deployments → New version**, or
 the old code keeps running.
 
+The sheet also gets a **Digital Autonomous** menu: *Clear test rows* (removes
+anything written while setting up and leaves genuine leads alone), *Delete ALL
+leads*, and *Rebuild dashboard*. Both deletions confirm first and are driven
+from inside the sheet by a signed-in person — there is deliberately no delete
+path on the web endpoint, so knowing the URL can never remove data.
+
+A menu change needs the file re-pasted and saved, then the spreadsheet
+reloaded; running a menu item uses the saved code, so no redeploy is needed for
+that.
+
 Two notes on limits. Apps Script web apps do not answer CORS preflights, so the
 browser posts `text/plain` and the script parses the body itself — do not
 "fix" that to `application/json`. And the sheet is a log, not a database: if it

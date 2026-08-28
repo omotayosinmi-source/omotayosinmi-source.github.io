@@ -306,3 +306,79 @@ function weeklyDigest() {
   MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
                     'Leads this week: ' + recent.length, body);
 }
+
+/* ------------------------------------------------------------------ *
+ * Maintenance menu
+ *
+ * Adds a "Digital Autonomous" menu to the spreadsheet. Deliberately not
+ * reachable from the web: deleting is done by a signed-in person from
+ * inside the sheet, never by anything that has the endpoint URL.
+ * ------------------------------------------------------------------ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Digital Autonomous')
+    .addItem('Clear test rows', 'clearTestRows')
+    .addSeparator()
+    .addItem('Delete ALL leads', 'clearAllLeads')
+    .addItem('Rebuild dashboard', 'refreshDashboard')
+    .addToUi();
+}
+
+// Anything written while setting the sheet up, rather than by a real visitor.
+var TEST_MARKERS = /^(TEST|GUARD TEST|GuardTest|Intruder|Bot|Sam$|COULD NOT READ SUBMISSION)/i;
+
+function clearTestRows() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
+  var ui = SpreadsheetApp.getUi();
+  if (!sheet || sheet.getLastRow() < 2) { ui.alert('Nothing to clear.'); return; }
+
+  var nameCol = colIndex('name');
+  var emailCol = colIndex('email');
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, COLUMNS.length).getValues();
+
+  var doomed = [];
+  values.forEach(function (r, i) {
+    var name = String(r[nameCol - 1] || '').trim();
+    var email = String(r[emailCol - 1] || '').trim();
+    var blank = !name && !email;
+    if (blank || TEST_MARKERS.test(name) || email === 'setup-check@digitalautonomous.co.uk' ||
+        email === 'a@b.co' || email === 'nope') {
+      doomed.push(i + 2);                      // sheet row number
+    }
+  });
+
+  if (!doomed.length) { ui.alert('No test rows found — everything here looks like a real lead.'); return; }
+
+  var preview = doomed.slice(0, 10).map(function (rowNum) {
+    var r = values[rowNum - 2];
+    return '  • row ' + rowNum + ': ' + (String(r[nameCol - 1] || '(no name)')).slice(0, 50);
+  }).join('\n');
+
+  var answer = ui.alert('Clear ' + doomed.length + ' test row(s)?',
+    preview + (doomed.length > 10 ? '\n  … and ' + (doomed.length - 10) + ' more' : '') +
+    '\n\nThis cannot be undone.', ui.ButtonSet.YES_NO);
+  if (answer !== ui.Button.YES) return;
+
+  // Delete from the bottom up so earlier row numbers stay valid.
+  doomed.sort(function (a, b) { return b - a; })
+        .forEach(function (rowNum) { sheet.deleteRow(rowNum); });
+
+  refreshDashboard();
+  ui.alert('Removed ' + doomed.length + ' test row(s). ' +
+           Math.max(sheet.getLastRow() - 1, 0) + ' lead(s) remain.');
+}
+
+function clearAllLeads() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
+  var ui = SpreadsheetApp.getUi();
+  if (!sheet || sheet.getLastRow() < 2) { ui.alert('The sheet is already empty.'); return; }
+
+  var count = sheet.getLastRow() - 1;
+  var answer = ui.alert('Delete all ' + count + ' row(s)?',
+    'Every lead in this sheet will be removed. This cannot be undone.', ui.ButtonSet.YES_NO);
+  if (answer !== ui.Button.YES) return;
+
+  sheet.deleteRows(2, count);
+  refreshDashboard();
+  ui.alert('Sheet cleared. The next row will be a real lead.');
+}
