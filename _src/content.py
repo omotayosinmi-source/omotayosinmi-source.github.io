@@ -43,7 +43,9 @@ FORM_ENDPOINT = "https://formsubmit.co/ajax/" + EMAIL
 # spreadsheet. Paste the deployment URL here — see _src/sheet-logger.gs for the
 # script and DEPLOY.md for the five-minute setup. Left blank, forms still work
 # and simply do not log a row.
-SHEET_ENDPOINT = ""
+SHEET_ENDPOINT = ("https://script.google.com/macros/s/"
+                  "AKfycbxlZRcy2mTuA1Ev0AAjOy1SPljKGD2lZkgzP2pWd_mrTQt0"
+                  "_WAMM-DzUvxeBO8QYgAg/exec")
 
 # Must match SHARED_TOKEN in _src/sheet-logger.gs. The web app has to accept
 # anonymous requests (a visitor's browser is not signed into Google), so this
