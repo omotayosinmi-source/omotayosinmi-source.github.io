@@ -79,6 +79,22 @@ var STATUSES = ['New', 'Contacted', 'Audit booked', 'Audit done',
 var NAVY = '#0a1a3a';
 var BLUE = '#00a6fb';
 
+// Dashboard palette and grid. The brand's two typefaces are both available in
+// Sheets, so the tab looks like it belongs to the same company as the website.
+var TILE_BG = '#f2f6fb';   // tile fill, a navy-tinted off-white
+var RULE    = '#d7e0ec';   // hairlines
+var MUTED   = '#66768c';   // captions and small print
+var BAND    = '#f7f9fc';   // alternating table rows
+var HEAD_F  = 'Montserrat';
+var BODY_F  = 'Lato';
+
+// Four columns of content, each a wide value column and a narrower number
+// column, with a third column between them. The gutters are not wasted: the
+// follow-up table below runs across all of them, which is why every column is
+// wide enough to hold a real value rather than being a 20px spacer.
+var UNITS = [1, 4, 7, 10];
+var GRID  = 11;            // A..K
+
 
 /* ------------------------------------------------------------------ *
  * Receiving a submission
@@ -115,7 +131,16 @@ function doPost(e) {
 
     sheet.appendRow(row);
     styleNewRow(sheet, sheet.getLastRow());
-    refreshDashboard();
+
+    // The lead is already saved by this point. The dashboard is a view of it,
+    // so a fault in drawing one must never be reported to the visitor as a
+    // failed submission — they would see the form break and send it again,
+    // and the row would be sitting in the sheet the whole time.
+    try {
+      refreshDashboard();
+    } catch (dashErr) {
+      console.error('Dashboard rebuild failed: ' + dashErr);
+    }
 
     return json({ ok: true });
   } catch (err) {
@@ -248,90 +273,192 @@ function columnLetter(n) {
 
 /* ------------------------------------------------------------------ *
  * Dashboard — formulas, so it stays live as you edit the Leads tab
+ *
+ * Everything below sits on the UNITS grid: four columns of content, each
+ * a wide value column with a number column beside it. Tiles and
+ * breakdown panels share that grid, so the eye runs straight down the
+ * page instead of hunting for where the next block starts.
  * ------------------------------------------------------------------ */
 function refreshDashboard() {
   var ss = SpreadsheetApp.getActive();
   var dash = ss.getSheetByName(DASH_NAME);
   if (!dash) dash = ss.insertSheet(DASH_NAME, 1);
+
+  // clear() drops content and formatting but leaves merges and conditional
+  // rules behind, and merging over a merge that is still there throws. Undo
+  // all three, or the second rebuild fails where the first one worked.
+  dash.getRange(1, 1, dash.getMaxRows(), dash.getMaxColumns()).breakApart();
+  dash.setConditionalFormatRules([]);
   dash.clear();
+  if (dash.getMaxColumns() < GRID) {
+    dash.insertColumnsAfter(dash.getMaxColumns(), GRID - dash.getMaxColumns());
+  }
 
   var L = "'" + SHEET_NAME + "'!";
-  var received = L + columnLetter(colIndex('received')) + '2:' + columnLetter(colIndex('received'));
-  var status   = L + columnLetter(colIndex('status'))   + '2:' + columnLetter(colIndex('status'));
-  var type     = L + columnLetter(colIndex('company_type')) + '2:' + columnLetter(colIndex('company_type'));
-  var size     = L + columnLetter(colIndex('company_size')) + '2:' + columnLetter(colIndex('company_size'));
-  var goal     = L + columnLetter(colIndex('goal'))     + '2:' + columnLetter(colIndex('goal'));
-  var form     = L + columnLetter(colIndex('form'))     + '2:' + columnLetter(colIndex('form'));
-  var followup = L + columnLetter(colIndex('followup')) + '2:' + columnLetter(colIndex('followup'));
+  function whole(key) {
+    var a = columnLetter(colIndex(key));
+    return L + a + '2:' + a;
+  }
+  var received = whole('received');
+  var status   = whole('status');
+  var type     = whole('company_type');
+  var size     = whole('company_size');
+  var goal     = whole('goal');
+  var form     = whole('form');
+  var followup = whole('followup');
 
-  dash.getRange('A1').setValue('Digital Autonomous — leads at a glance');
-  dash.getRange('A1').setFontSize(16).setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('A2').setFormula('="Updated "&TEXT(NOW(),"dd/MM/yyyy HH:mm")');
-  dash.getRange('A2').setFontColor('#777777');
+  /* -- masthead ---------------------------------------------------- */
+  dash.getRange(1, 1, 1, GRID).merge()
+      .setValue('  Digital Autonomous — leads')
+      .setBackground(NAVY).setFontColor('#ffffff')
+      .setFontFamily(HEAD_F).setFontSize(17).setFontWeight('bold')
+      .setVerticalAlignment('middle');
+  dash.setRowHeight(1, 54);
 
+  dash.getRange(2, 1, 1, GRID).merge()
+      .setFormula('="  Updated "&TEXT(NOW(),"dddd d mmmm yyyy")&" at "&TEXT(NOW(),"HH:mm")')
+      .setFontFamily(BODY_F).setFontSize(10).setFontColor(MUTED)
+      .setVerticalAlignment('middle');
+  dash.setRowHeight(2, 24);
+  dash.setRowHeight(3, 12);
+
+  /* -- tiles ------------------------------------------------------- *
+   * Seven numbers, four to a band. Workload and outcome lead, because
+   * those are the ones that change what you do this morning.          */
   var tiles = [
-    ['Total leads',      '=COUNTA(' + received + ')'],
-    ['New, not yet contacted', '=COUNTIF(' + status + ',"New")'],
-    ['Last 7 days',      '=COUNTIFS(' + received + ',">="&TODAY()-7)'],
-    ['Last 30 days',     '=COUNTIFS(' + received + ',">="&TODAY()-30)'],
-    ['Audits booked',    '=COUNTIF(' + status + ',"Audit booked")'],
-    ['Won',              '=COUNTIF(' + status + ',"Won")'],
+    ['Total leads',        '=COUNTA(' + received + ')'],
+    ['Not yet contacted',  '=COUNTIF(' + status + ',"New")'],
     ['Follow-ups overdue', '=COUNTIFS(' + followup + ',"<"&TODAY(),' + followup + ',"<>",' +
-                            status + ',"<>Won",' + status + ',"<>Lost")']
+                             status + ',"<>Won",' + status + ',"<>Lost")'],
+    ['Audits booked',      '=COUNTIF(' + status + ',"Audit booked")'],
+    ['Won',                '=COUNTIF(' + status + ',"Won")'],
+    ['Last 7 days',        '=COUNTIFS(' + received + ',">="&TODAY()-7)'],
+    ['Last 30 days',       '=COUNTIFS(' + received + ',">="&TODAY()-30)']
   ];
-  dash.getRange('A4').setValue('Overview').setFontWeight('bold').setFontColor(NAVY);
+
   tiles.forEach(function (t, i) {
-    var r = 5 + i;
-    dash.getRange(r, 1).setValue(t[0]);
-    dash.getRange(r, 2).setFormula(t[1]).setFontWeight('bold').setHorizontalAlignment('left');
-  });
-  dash.getRange(5, 1, tiles.length, 2).setBorder(true, true, true, true, true, true, '#e0e0e0',
-                                                 SpreadsheetApp.BorderStyle.SOLID);
-
-  dash.getRange('D4').setValue('By status').setFontWeight('bold').setFontColor(NAVY);
-  STATUSES.forEach(function (st, i) {
-    dash.getRange(5 + i, 4).setValue(st);
-    dash.getRange(5 + i, 5).setFormula('=COUNTIF(' + status + ',"' + st + '")');
+    var band = Math.floor(i / UNITS.length);
+    drawTile(dash, 4 + band * 3, UNITS[i % UNITS.length], t[0], t[1]);
   });
 
-  dash.getRange('G4').setValue('By company type').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('G5').setFormula(
-    '=IFERROR(QUERY(' + type + ',"select Col1, count(Col1) where Col1 is not null ' +
-    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
+  /* -- who to call next -------------------------------------------- *
+   * Above the breakdowns on purpose: this is the part you act on. The
+   * QUERY is capped at 15 rows, so what sits below it never moves.    */
+  var CALL = 10;
+  sectionHeading(dash, CALL, 'Who to call next');
 
-  dash.getRange('J4').setValue('By source').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('J5').setFormula(
-    '=IFERROR(QUERY(' + form + ',"select Col1, count(Col1) where Col1 is not null ' +
-    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
+  var heads = ['Name', 'Came in', 'Company', 'Wants to improve', 'Size', 'Phone', 'Status'];
+  dash.getRange(CALL + 1, 1, 1, heads.length).setValues([heads])
+      .setBackground(NAVY).setFontColor('#ffffff').setFontWeight('bold')
+      .setFontFamily(BODY_F).setFontSize(10).setVerticalAlignment('middle');
+  dash.setRowHeight(CALL + 1, 30);
 
-  // The two qualifying answers. Size says whether the work is worth building;
-  // the goal says which service to open the audit with.
-  dash.getRange('M4').setValue('By company size').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('M5').setFormula(
-    '=IFERROR(QUERY(' + size + ',"select Col1, count(Col1) where Col1 is not null ' +
-    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
-
-  dash.getRange('P4').setValue('What they want to improve').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('P5').setFormula(
-    '=IFERROR(QUERY(' + goal + ',"select Col1, count(Col1) where Col1 is not null ' +
-    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
-
-  // Sits below the panels above, which grow downwards as more distinct
-  // answers arrive — a QUERY that runs into another one returns #REF and
-  // takes the whole dashboard with it.
-  dash.getRange('A25').setValue('Needs attention').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('A26').setFormula(
+  dash.getRange(CALL + 2, 1).setFormula(
     '=IFERROR(QUERY(' + L + 'A2:' + columnLetter(COLUMNS.length) + ',"select ' +
-    columnLetter(colIndex('received')) + ', ' + columnLetter(colIndex('name')) + ', ' +
-    columnLetter(colIndex('company')) + ', ' + columnLetter(colIndex('company_size')) + ', ' +
-    columnLetter(colIndex('goal')) + ', ' + columnLetter(colIndex('phone')) + ', ' +
+    columnLetter(colIndex('name')) + ', ' + columnLetter(colIndex('received')) + ', ' +
+    columnLetter(colIndex('company')) + ', ' + columnLetter(colIndex('goal')) + ', ' +
+    columnLetter(colIndex('company_size')) + ', ' + columnLetter(colIndex('phone')) + ', ' +
     columnLetter(colIndex('status')) + ' where ' + columnLetter(colIndex('status')) +
     " = 'New' order by " + columnLetter(colIndex('received')) +
     ' desc limit 15",0),"Nothing waiting — all caught up.")');
 
-  [1, 4, 7, 10, 13, 16].forEach(function (c) { dash.setColumnWidth(c, 190); });
-  [2, 5, 8, 11, 14, 17].forEach(function (c) { dash.setColumnWidth(c, 90); });
+  dash.getRange(CALL + 2, 1, 15, heads.length)
+      .setFontFamily(BODY_F).setFontSize(10).setVerticalAlignment('middle');
+  dash.getRange(CALL + 2, 2, 15, 1).setNumberFormat('dd/MM/yyyy HH:mm');
+  for (var r = CALL + 2; r < CALL + 17; r++) dash.setRowHeight(r, 24);
+
+  /* -- the mix ------------------------------------------------------ */
+  var MIX = CALL + 18;
+  sectionHeading(dash, MIX, 'The mix');
+
+  function byQuery(range) {
+    return '=IFERROR(QUERY(' + range + ',"select Col1, count(Col1) where Col1 is not null ' +
+           'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")';
+  }
+
+  // The row counts are the most answers each question can produce: five sizes,
+  // four goals, the status list, and a handful of forms. The band below starts
+  // clear of the tallest of them.
+  [['By company size', size, 5], ['What they want to improve', goal, 4],
+   ['By status', status, STATUSES.length], ['By source', form, 4]
+  ].forEach(function (p, i) {
+    drawPanel(dash, MIX + 1, UNITS[i], p[0], byQuery(p[1]), p[2]);
+  });
+
+  // Company type has by far the most possible answers, so it gets a band to
+  // itself and room to grow downwards without running into anything.
+  drawPanel(dash, MIX + 12, UNITS[0], 'By company type', byQuery(type), 20);
+
+  /* -- grid, banding, chrome --------------------------------------- */
+  [1, 4, 7, 10].forEach(function (c) { dash.setColumnWidth(c, 170); });
+  [2, 5, 8, 11].forEach(function (c) { dash.setColumnWidth(c, 115); });
+  [3, 6, 9].forEach(function (c) { dash.setColumnWidth(c, 145); });
+
+  dash.setConditionalFormatRules([
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=AND(ISEVEN(ROW()),$A' + (CALL + 2) + '<>"")')
+      .setBackground(BAND)
+      .setRanges([dash.getRange(CALL + 2, 1, 15, heads.length)])
+      .build()
+  ]);
+
   dash.setHiddenGridlines(true);
+}
+
+
+/** One number, big, with its caption above it. */
+function drawTile(dash, top, col, label, formula) {
+  dash.getRange(top, col, 2, 2)
+      .setBackground(TILE_BG)
+      .setBorder(true, true, true, true, false, false, RULE, SpreadsheetApp.BorderStyle.SOLID);
+
+  dash.getRange(top, col, 1, 2).merge()
+      .setValue('  ' + label)
+      .setFontFamily(BODY_F).setFontSize(9).setFontColor(MUTED)
+      .setVerticalAlignment('middle');
+
+  dash.getRange(top + 1, col, 1, 2).merge()
+      .setFormula(formula).setNumberFormat('0')
+      .setFontFamily(HEAD_F).setFontSize(21).setFontWeight('bold').setFontColor(NAVY)
+      .setVerticalAlignment('top');
+
+  dash.setRowHeight(top, 22);
+  dash.setRowHeight(top + 1, 40);
+}
+
+
+/** A section rule: small navy capitals with a hairline under them. */
+function sectionHeading(dash, row, text) {
+  dash.getRange(row, 1, 1, GRID).merge()
+      .setValue(text.toUpperCase())
+      .setFontFamily(HEAD_F).setFontSize(10).setFontWeight('bold').setFontColor(NAVY)
+      .setVerticalAlignment('bottom')
+      .setBorder(null, null, true, null, null, null, NAVY, SpreadsheetApp.BorderStyle.SOLID);
+  dash.setRowHeight(row, 30);
+}
+
+
+/**
+ * A breakdown: heading, hairline, then a live QUERY underneath.
+ *
+ * `rows` is how far down the formatting reaches, and must be at least as many
+ * answers as the question can have. Formatting further than that is not
+ * cosmetic sloppiness — it would run into whatever panel is drawn below and
+ * fight it for the same cells.
+ */
+function drawPanel(dash, row, col, title, formula, rows) {
+  dash.getRange(row, col, 1, 2).merge()
+      .setValue(title)
+      .setFontFamily(BODY_F).setFontSize(10).setFontWeight('bold').setFontColor(NAVY)
+      .setVerticalAlignment('middle')
+      .setBorder(null, null, true, null, null, null, RULE, SpreadsheetApp.BorderStyle.SOLID);
+  dash.setRowHeight(row, 26);
+
+  dash.getRange(row + 1, col).setFormula(formula);
+  dash.getRange(row + 1, col, rows, 2)
+      .setFontFamily(BODY_F).setFontSize(10).setVerticalAlignment('middle');
+  dash.getRange(row + 1, col + 1, rows, 1)
+      .setFontWeight('bold').setFontColor(NAVY).setHorizontalAlignment('left');
 }
 
 
