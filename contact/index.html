@@ -135,6 +135,16 @@
                  placeholder="Your company">
         </div>
         <div class="field">
+              <label for="cSize">Roughly how many people work there? <span aria-hidden="true">*</span></label>
+              <select id="cSize" name="company_size" required aria-describedby="cSizeErr"><option value="" selected disabled>Please choose…</option><option value="Just me">Just me</option><option value="2 to 10 people">2 to 10 people</option><option value="11 to 50 people">11 to 50 people</option><option value="51 to 200 people">51 to 200 people</option><option value="More than 200 people">More than 200 people</option></select>
+              <div class="field-error" id="cSizeErr">Please pick the closest range.</div>
+            </div>
+            <div class="field">
+              <label for="cGoal">What would you most like to improve? <span aria-hidden="true">*</span></label>
+              <select id="cGoal" name="goal" required aria-describedby="cGoalErr"><option value="" selected disabled>Please choose…</option><option value="Generate more revenue">Generate more revenue</option><option value="Reduce operating costs">Reduce operating costs</option><option value="Save employee time">Save employee time</option><option value="Not sure">Not sure</option></select>
+              <div class="field-error" id="cGoalErr">Please pick the one that matters most.</div>
+            </div>
+        <div class="field">
           <label for="cMessage">Where do you think you are losing enquiries? <span aria-hidden="true">*</span></label>
           <textarea id="cMessage" name="message" required aria-describedby="cMessageErr"
             placeholder="We miss a lot of calls during clinic hours, and quotes go out without anyone chasing them."></textarea>

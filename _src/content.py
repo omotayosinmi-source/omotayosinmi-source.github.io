@@ -79,6 +79,33 @@ COMPANY_TYPES = [
     OTHER_OPTION,
 ]
 
+# --------------------------------------------------------------------------
+# Qualification
+#
+# Two questions that turn a lead into a lead we can rank before the call.
+# Size tells us whether the work is worth building; the goal tells us which
+# service to open the audit with.
+#
+# Both are deliberately coarse. A picker somebody has to think about is a
+# picker somebody abandons, and an approximate answer is all the audit needs.
+# --------------------------------------------------------------------------
+COMPANY_SIZES = [
+    "Just me",
+    "2 to 10 people",
+    "11 to 50 people",
+    "51 to 200 people",
+    "More than 200 people",
+]
+
+# "Not sure" is a real answer, not a cop-out — it is the audit's best lead,
+# because it says the caller knows something is wrong but not what. Keep it.
+IMPROVEMENT_GOALS = [
+    "Generate more revenue",
+    "Reduce operating costs",
+    "Save employee time",
+    "Not sure",
+]
+
 
 # --------------------------------------------------------------------------
 # Icons — 24x24 stroke paths, drawn by icon() in build.py

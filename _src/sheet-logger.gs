@@ -50,7 +50,11 @@ var SHARED_TOKEN = 'da-wxFZTutTCD56fDUtoue41_YJeMM5OULh';
 var SHEET_NAME = 'Leads';
 var DASH_NAME = 'Dashboard';
 
-// Column order. Add one here and it appears on the next submission.
+// Column order. Add one here and it appears on the next submission — on a
+// sheet that already holds leads too, because ensureSheet calls syncHeader to
+// slot the new heading in and shift the existing data across.
+//
+// A key must match the form field's `name` attribute in _src/build.py.
 var COLUMNS = [
   { key: 'received',     label: 'Received',       width: 140 },
   { key: 'name',         label: 'Name',           width: 160 },
@@ -58,6 +62,8 @@ var COLUMNS = [
   { key: 'phone',        label: 'Phone',          width: 150 },
   { key: 'company',      label: 'Company',        width: 180 },
   { key: 'company_type', label: 'Company type',   width: 200 },
+  { key: 'company_size', label: 'Company size',   width: 150 },
+  { key: 'goal',         label: 'Wants to improve', width: 190 },
   { key: 'message',      label: 'What they said', width: 320 },
   { key: 'form',         label: 'Came from',      width: 120 },
   { key: 'page',         label: 'Page',           width: 120 },
@@ -155,6 +161,8 @@ function ensureSheet() {
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(COLUMNS.map(function (c) { return c.label; }));
+  } else {
+    syncHeader(sheet);
   }
 
   var header = sheet.getRange(1, 1, 1, COLUMNS.length);
@@ -192,6 +200,34 @@ function ensureSheet() {
   return sheet;
 }
 
+/**
+ * Bring a sheet that already has rows in it up to date with COLUMNS.
+ *
+ * Adding a column used to work only on an empty sheet. A sheet with leads in
+ * it kept its original header, so every new submission wrote its values one
+ * place to the left of the heading describing them — silently, and only
+ * visible once somebody read a row and found the phone number under "Company".
+ *
+ * This walks COLUMNS in order and inserts any heading the sheet does not have
+ * at the position it belongs, pushing existing data right so old rows stay
+ * under their own headings. A heading that exists but sits somewhere else is
+ * left where it is, and a column you added by hand is never touched — this
+ * only ever adds.
+ */
+function syncHeader(sheet) {
+  for (var i = 0; i < COLUMNS.length; i++) {
+    var header = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+    if (header.indexOf(COLUMNS[i].label) > -1) continue;
+
+    if (i < sheet.getMaxColumns()) {
+      sheet.insertColumnBefore(i + 1);
+    } else {
+      sheet.insertColumnAfter(sheet.getMaxColumns());
+    }
+    sheet.getRange(1, i + 1).setValue(COLUMNS[i].label);
+  }
+}
+
 function styleNewRow(sheet, row) {
   sheet.getRange(row, colIndex('received')).setNumberFormat('dd/MM/yyyy HH:mm');
   sheet.getRange(row, colIndex('followup')).setNumberFormat('dd/MM/yyyy');
@@ -223,6 +259,8 @@ function refreshDashboard() {
   var received = L + columnLetter(colIndex('received')) + '2:' + columnLetter(colIndex('received'));
   var status   = L + columnLetter(colIndex('status'))   + '2:' + columnLetter(colIndex('status'));
   var type     = L + columnLetter(colIndex('company_type')) + '2:' + columnLetter(colIndex('company_type'));
+  var size     = L + columnLetter(colIndex('company_size')) + '2:' + columnLetter(colIndex('company_size'));
+  var goal     = L + columnLetter(colIndex('goal'))     + '2:' + columnLetter(colIndex('goal'));
   var form     = L + columnLetter(colIndex('form'))     + '2:' + columnLetter(colIndex('form'));
   var followup = L + columnLetter(colIndex('followup')) + '2:' + columnLetter(colIndex('followup'));
 
@@ -266,17 +304,33 @@ function refreshDashboard() {
     '=IFERROR(QUERY(' + form + ',"select Col1, count(Col1) where Col1 is not null ' +
     'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
 
-  dash.getRange('A14').setValue('Needs attention').setFontWeight('bold').setFontColor(NAVY);
-  dash.getRange('A15').setFormula(
-    '=IFERROR(QUERY(' + L + 'A2:M,"select ' +
+  // The two qualifying answers. Size says whether the work is worth building;
+  // the goal says which service to open the audit with.
+  dash.getRange('M4').setValue('By company size').setFontWeight('bold').setFontColor(NAVY);
+  dash.getRange('M5').setFormula(
+    '=IFERROR(QUERY(' + size + ',"select Col1, count(Col1) where Col1 is not null ' +
+    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
+
+  dash.getRange('P4').setValue('What they want to improve').setFontWeight('bold').setFontColor(NAVY);
+  dash.getRange('P5').setFormula(
+    '=IFERROR(QUERY(' + goal + ',"select Col1, count(Col1) where Col1 is not null ' +
+    'group by Col1 order by count(Col1) desc label count(Col1) \'\'",0),"No leads yet")');
+
+  // Sits below the panels above, which grow downwards as more distinct
+  // answers arrive — a QUERY that runs into another one returns #REF and
+  // takes the whole dashboard with it.
+  dash.getRange('A25').setValue('Needs attention').setFontWeight('bold').setFontColor(NAVY);
+  dash.getRange('A26').setFormula(
+    '=IFERROR(QUERY(' + L + 'A2:' + columnLetter(COLUMNS.length) + ',"select ' +
     columnLetter(colIndex('received')) + ', ' + columnLetter(colIndex('name')) + ', ' +
-    columnLetter(colIndex('company')) + ', ' + columnLetter(colIndex('phone')) + ', ' +
+    columnLetter(colIndex('company')) + ', ' + columnLetter(colIndex('company_size')) + ', ' +
+    columnLetter(colIndex('goal')) + ', ' + columnLetter(colIndex('phone')) + ', ' +
     columnLetter(colIndex('status')) + ' where ' + columnLetter(colIndex('status')) +
     " = 'New' order by " + columnLetter(colIndex('received')) +
     ' desc limit 15",0),"Nothing waiting — all caught up.")');
 
-  [1, 4, 7, 10].forEach(function (c) { dash.setColumnWidth(c, 190); });
-  [2, 5, 8, 11].forEach(function (c) { dash.setColumnWidth(c, 90); });
+  [1, 4, 7, 10, 13, 16].forEach(function (c) { dash.setColumnWidth(c, 190); });
+  [2, 5, 8, 11, 14, 17].forEach(function (c) { dash.setColumnWidth(c, 90); });
   dash.setHiddenGridlines(true);
 }
 
@@ -299,6 +353,8 @@ function weeklyDigest() {
              'Waiting on you: ' + open.length + '\n\n';
   recent.forEach(function (r) {
     body += '• ' + r[colIndex('name') - 1] + ' — ' + r[colIndex('company_type') - 1] +
+            ', ' + r[colIndex('company_size') - 1] +
+            '\n    wants to ' + String(r[colIndex('goal') - 1] || 'unknown').toLowerCase() +
             ' — ' + r[colIndex('phone') - 1] + '\n';
   });
   body += '\n' + SpreadsheetApp.getActive().getUrl();

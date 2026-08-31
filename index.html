@@ -368,6 +368,16 @@
               <div class="field-error" id="aTypeErr">Please pick the closest match.</div>
             </div>
             <div class="field field-other" id="aOtherWrap" hidden><label for="aOther">Tell us what kind <span aria-hidden="true">*</span></label><input type="text" id="aOther" name="company_type_other" aria-describedby="aOtherErr" placeholder="e.g. veterinary practice"><div class="field-error" id="aOtherErr">Please tell us what kind of company this is.</div></div>
+            <div class="field">
+              <label for="aSize">Roughly how many people work there? <span aria-hidden="true">*</span></label>
+              <select id="aSize" name="company_size" required aria-describedby="aSizeErr"><option value="" selected disabled>Please choose…</option><option value="Just me">Just me</option><option value="2 to 10 people">2 to 10 people</option><option value="11 to 50 people">11 to 50 people</option><option value="51 to 200 people">51 to 200 people</option><option value="More than 200 people">More than 200 people</option></select>
+              <div class="field-error" id="aSizeErr">Please pick the closest range.</div>
+            </div>
+            <div class="field">
+              <label for="aGoal">What would you most like to improve? <span aria-hidden="true">*</span></label>
+              <select id="aGoal" name="goal" required aria-describedby="aGoalErr"><option value="" selected disabled>Please choose…</option><option value="Generate more revenue">Generate more revenue</option><option value="Reduce operating costs">Reduce operating costs</option><option value="Save employee time">Save employee time</option><option value="Not sure">Not sure</option></select>
+              <div class="field-error" id="aGoalErr">Please pick the one that matters most.</div>
+            </div>
             <button type="submit" class="btn btn-primary" style="width:100%"
                     data-track="book_audit_submit" data-track-location="audit_section">
               Book My Free Automation Audit</button>

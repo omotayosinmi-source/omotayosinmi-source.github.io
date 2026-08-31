@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from content import (  # noqa: E402
     SITE, EMAIL, BRAND, DESCRIPTOR, TAGLINE, FOUNDER, LOCATION,
     FORM_ENDPOINT, SHEET_ENDPOINT, SHEET_TOKEN, COMPANY_TYPES, OTHER_OPTION,
+    COMPANY_SIZES, IMPROVEMENT_GOALS,
     DIAL_CODES, DIAL_DIVIDER,
     PHONE, LINKEDIN, LINKEDIN_FOUNDER, COMPANY_NAME, COMPANY_NUMBER,
     REGISTERED_OFFICE, LEGAL_UPDATED, ICONS, INTEGRATIONS, PROBLEMS,
@@ -512,6 +513,7 @@ def audit_section(home=False):
               <div class="field-error" id="aTypeErr">Please pick the closest match.</div>
             </div>
             %(aother)s
+            %(aqual)s
             <button type="submit" class="btn btn-primary" style="width:100%%"
                     data-track="book_audit_submit" data-track-location="audit_section">
               Book My Free Automation Audit</button>
@@ -527,6 +529,7 @@ def audit_section(home=False):
 """ % dict(items=items, map=icon("map"), clock=icon("clock"),
            check=icon("check", stroke="2.4"), doc=icon("doc"),
            adial=dial_select("aCode"), atype=company_type_select("aType", "aOther"), aother=company_type_other("aOther"),
+           aqual=qualifying_fields("aSize", "aGoal"),
            endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT, token=SHEET_TOKEN,
            honey=honeypot("aTrap"),
            mail='<a href="mailto:%s" style="color:var(--cyan)">%s</a>' % (EMAIL, EMAIL))
@@ -739,6 +742,44 @@ def company_type_select(field_id, other_id):
             'data-other="%s" data-other-value="%s">'
             '<option value="" selected disabled>Please choose…</option>%s</select>'
             % (field_id, field_id, other_id, OTHER_OPTION, opts))
+
+
+def choice_select(field_id, name, options):
+    """A required picker with no free-text escape hatch.
+
+    Unlike company_type_select there is no `data-other`, because both
+    qualification questions are answerable from the list — company size always
+    is, and "Not sure" catches the rest. site.js needs no change to read it:
+    the submit handler collects every named field inside a `.field`, and a
+    SELECT is valid once it is not on the empty prompt.
+    """
+    opts = "".join('<option value="%s">%s</option>' % (o, o) for o in options)
+    return ('<select id="%s" name="%s" required aria-describedby="%sErr">'
+            '<option value="" selected disabled>Please choose…</option>%s</select>'
+            % (field_id, name, field_id, opts))
+
+
+def size_select(field_id):
+    return choice_select(field_id, "company_size", COMPANY_SIZES)
+
+
+def goal_select(field_id):
+    return choice_select(field_id, "goal", IMPROVEMENT_GOALS)
+
+
+def qualifying_fields(size_id, goal_id):
+    """The two questions that make a booking rankable before anyone calls."""
+    return """<div class="field">
+              <label for="%(sid)s">Roughly how many people work there? <span aria-hidden="true">*</span></label>
+              %(size)s
+              <div class="field-error" id="%(sid)sErr">Please pick the closest range.</div>
+            </div>
+            <div class="field">
+              <label for="%(gid)s">What would you most like to improve? <span aria-hidden="true">*</span></label>
+              %(goal)s
+              <div class="field-error" id="%(gid)sErr">Please pick the one that matters most.</div>
+            </div>""" % dict(sid=size_id, gid=goal_id,
+                             size=size_select(size_id), goal=goal_select(goal_id))
 
 
 def honeypot(field_id):
@@ -1399,6 +1440,7 @@ def build_contact():
           <input type="text" id="cCompany" name="company" autocomplete="organization"
                  placeholder="Your company">
         </div>
+        %(cqual)s
         <div class="field">
           <label for="cMessage">Where do you think you are losing enquiries? <span aria-hidden="true">*</span></label>
           <textarea id="cMessage" name="message" required aria-describedby="cMessageErr"
@@ -1430,6 +1472,7 @@ def build_contact():
 """ % dict(crumbs=crumbs([("/", "Home"), (None, "Contact")]),
            methods="".join(methods), audit=audit_items, email=EMAIL,
            cdial=dial_select("cCode"), ctype=company_type_select("cType", "cOther"), cother=company_type_other("cOther"),
+           cqual=qualifying_fields("cSize", "cGoal"),
            endpoint=FORM_ENDPOINT, sheet=SHEET_ENDPOINT, token=SHEET_TOKEN,
            honey=honeypot("cTrap"))
 
