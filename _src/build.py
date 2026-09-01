@@ -919,16 +919,14 @@ def about_section():
         '<div class="about-point"><span class="wm">%s</span><div><h3>%s</h3><p>%s</p></div></div>'
         % (icon(ic), t, d) for ic, t, d in points)
 
+    # With no LinkedIn on file the card simply ends after the founder's own
+    # words. Omitting what is not verified is the rule everywhere else in these
+    # templates; saying out loud that something is missing is not.
     li_html = ""
     if LINKEDIN_FOUNDER:
         li_html = ('<div class="founder-links">'
                    '<a class="btn btn-ghost" href="%s" rel="noopener" target="_blank">Connect on LinkedIn</a>'
                    '</div>' % LINKEDIN_FOUNDER)
-    else:
-        li_html = ('<div class="placeholder-note">Reserved for the founder’s photograph, '
-                   'professional background, LinkedIn profile and a statement in their own '
-                   'words. Deliberately empty: nothing on this page is invented, so it stays '
-                   'sparse until the real details are supplied.</div>')
 
     return """<section class="block" id="about" aria-labelledby="about-h">
   <div class="wrap">
