@@ -327,13 +327,6 @@ header.scrolled{border-color:var(--navy-800);background:rgba(5,16,31,.94)}
 .step.on .node svg{stroke:var(--cyan)}
 .step.on .body .t{color:var(--white)}
 
-.panel-foot{
-  margin-top:1rem;padding-top:1rem;border-top:1px solid var(--navy-800);
-  display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;
-}
-.panel-foot .f-note{font-size:.78rem;color:var(--muted);line-height:1.5}
-.panel-foot .f-chip{font-size:.72rem;color:var(--cyan);font-family:'Montserrat';font-weight:600;white-space:nowrap}
-
 /* ---------- Integrations ------------------------------------------------- */
 .integ-strip{padding:clamp(2.5rem,5vw,3.5rem) 0}
 .integ-lede{

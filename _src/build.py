@@ -661,10 +661,6 @@ def home_hero():
         <div class="flow-line"><span class="flow-fill"></span></div>
         %(steps)s
       </div>
-      <div class="panel-foot">
-        <p class="f-note">An example of a lead-capture flow. Not live client data.</p>
-        <span class="f-chip">Runs unattended</span>
-      </div>
     </div>
   </div>
 </section>
