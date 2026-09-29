@@ -685,6 +685,41 @@ INDUSTRIES = [
                   "appointment-automation", "review-automation", "operations-automation"],
     },
     {
+        "slug": "property-management",
+        "icon": "lock",
+        "nav": "Property Management",
+        "title": "Property Management",
+        "blurb": "Property managers whose growth depends on winning new owners, "
+                 "while maintenance requests and tenant questions arrive at all "
+                 "hours.",
+        "chips": ["Owner enquiries", "Rental analysis requests", "Owner follow-up",
+                  "Maintenance triage", "Tenant updates"],
+        "meta_title": "Automation for Property Management Companies | Digital Autonomous",
+        "meta_desc": "Owner enquiry response and follow-up, maintenance request "
+                     "triage and tenant updates for property management companies "
+                     "that want more doors without more admin.",
+        "h1": "Automation for property management companies.",
+        "lead": "Landlords rarely sign a management agreement after one call. They "
+                "take weeks to decide, and the company that keeps in touch "
+                "usually wins the doors.",
+        "pains": [
+            ("Owner enquiries answered too slowly",
+             "A landlord fills in your form on Friday evening and hears back on "
+             "Monday, after other managers have already called."),
+            ("Landlords who are not ready yet",
+             "Most owners are months away from switching. After one call and one "
+             "email, nobody gets back in touch."),
+            ("Maintenance requests at all hours",
+             "A slow leak and a burst pipe come in on the same phone line, and "
+             "someone has to sort one from the other at night."),
+            ("Tenants chasing for updates",
+             "Every call asking whether the plumber is booked is time your team "
+             "could spend on owners."),
+        ],
+        "stack": ["lead-follow-up-automation", "ai-receptionist", "crm-automation",
+                  "appointment-automation", "operations-automation"],
+    },
+    {
         "slug": "professional-services",
         "icon": "brief",
         "nav": "Professional Services",
